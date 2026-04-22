@@ -21,8 +21,6 @@ https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
 autoMate is an MCP server that gives AI assistants (Claude, GPT, etc.) the ability to **control any desktop application** — even apps with no API, no plugin system, and no automation support.
 
-Think of it as the cross-platform, AI-native alternative to [Quicker](https://www.getquicker.net) — but instead of building workflows by dragging blocks, you just describe what you want.
-
 **What makes it different from filesystem / browser / Windows MCP:**
 
 | MCP Server | What it automates |
@@ -32,15 +30,23 @@ Think of it as the cross-platform, AI-native alternative to [Quicker](https://ww
 | Windows MCP | OS settings and system calls |
 | **autoMate** | **Any desktop GUI app with no API** — 剪映, Photoshop, AutoCAD, WeChat, SAP, internal tools… |
 
+**Two modes:**
+
+| Mode | How it works | Requires |
+|------|-------------|---------|
+| **Basic** | Claude sees the screen, autoMate clicks/types | Nothing — zero config |
+| **Cloud Vision** | autoMate parses UI itself + reasons via cloud VLM | HuggingFace token + endpoints |
+
 ---
 
 ## ✨ Features
 
 - 🖥️ **Automates apps with no API** — if it has a GUI, autoMate can drive it
 - 📚 **Reusable script library** — save workflows once, run forever; install community scripts in one command
+- ☁️ **Cloud Vision** — screen parsing via OmniParser + action reasoning via UI-TARS, all in the cloud, zero local GPU
 - 🧠 **Claude knows when to use it** — clear identity prevents autoMate from being bypassed by other MCPs
-- 🤖 **Zero config** — no API keys, no env vars; the host LLM does the thinking
-- 🌍 **Cross-platform** — Windows, macOS, Linux (Quicker is Windows-only)
+- 🤖 **Zero config for basic use** — no API keys, no env vars needed to get started
+- 🌍 **Cross-platform** — Windows, macOS, Linux
 
 ---
 
@@ -63,7 +69,7 @@ Open **Settings → Developer → Edit Config**, then add:
 }
 ```
 
-Restart Claude Desktop — done. autoMate auto-updates every restart.
+Restart Claude Desktop — done. `@latest` keeps autoMate up to date automatically.
 
 ### OpenClaw
 
@@ -99,9 +105,55 @@ Settings → MCP Servers → Add:
 
 ---
 
+## ☁️ Cloud Vision (Optional)
+
+Cloud Vision adds autonomous screen parsing and action reasoning to autoMate — **no local GPU required**.
+
+It uses two HuggingFace Inference Endpoints:
+- **OmniParser V2** — detects all UI elements (icons, buttons, text) from a screenshot
+- **UI-TARS / Qwen-VL** — vision-language model that decides what action to take next
+
+### Setup
+
+Add these env vars to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "automate": {
+      "command": "uvx",
+      "args": ["automate-mcp@latest"],
+      "env": {
+        "AUTOMATE_HF_TOKEN": "hf_...",
+        "AUTOMATE_SCREEN_PARSER_URL": "https://your-omniparser-endpoint.aws.endpoints.huggingface.cloud",
+        "AUTOMATE_ACTION_MODEL_URL": "https://your-uitars-endpoint.aws.endpoints.huggingface.cloud",
+        "AUTOMATE_ACTION_MODEL_NAME": "ByteDance-Seed/UI-TARS-1.5-7B",
+        "AUTOMATE_HF_NAMESPACE": "your-hf-username",
+        "AUTOMATE_SCREEN_PARSER_ENDPOINT": "omniparser-v2",
+        "AUTOMATE_ACTION_MODEL_ENDPOINT": "ui-tars-1-5-7b"
+      }
+    }
+  }
+}
+```
+
+See `.env.example` in the repo for the full reference.
+
+### Cloud Vision workflow
+
+```
+1. warm_endpoints   — wake up scaled-to-zero endpoints (1–5 min)
+2. parse_screen     — detect all UI elements via cloud OmniParser
+3. reason_action    — ask VLM what to click/type next
+   — or —
+   smart_act        — full autonomous loop: parse → reason → execute → repeat
+```
+
+---
+
 ## 🛠️ MCP Tools
 
-**Script library** — the core value: save a workflow once, run it forever.
+**Script library** — save once, run forever:
 
 | Tool | Description |
 |------|-------------|
@@ -112,7 +164,17 @@ Settings → MCP Servers → Add:
 | `delete_script` | Delete a script |
 | `install_script` | Install a script from a URL or the community library |
 
-**Low-level desktop control** — used by Claude when building or executing scripts.
+**Cloud Vision** — autonomous UI understanding (requires HF config):
+
+| Tool | Description |
+|------|-------------|
+| `cloud_vision_config` | Show current cloud vision configuration status |
+| `warm_endpoints` | Wake up scaled-to-zero HF endpoints before use |
+| `parse_screen` | Detect all UI elements via cloud OmniParser |
+| `reason_action` | Ask a VLM what GUI action to take next |
+| `smart_act` | Full autonomous loop: parse → reason → execute → repeat |
+
+**Low-level desktop control** — used when building or executing scripts:
 
 | Tool | Description |
 |------|-------------|
@@ -130,8 +192,6 @@ Settings → MCP Servers → Add:
 ## 📚 Script Library
 
 Scripts are saved as `.md` files in `~/.automate/scripts/` — human-readable, git-friendly, shareable.
-
-**Example script:**
 
 ```markdown
 ---
@@ -161,26 +221,18 @@ created: 2025-01-01
 
 Steps without hints are interpreted by the AI vision model at runtime.
 
-**Install a community script:**
-
-```
-Tell Claude: "install the automate script from <url>"
-```
-
-or Claude calls `install_script` directly with a raw GitHub URL.
-
 ---
 
 ## 📝 FAQ
 
 **Q: How is this different from just using Claude's computer-use capability?**  
-autoMate provides persistent, reusable scripts. Once you automate a task, it's saved and runs instantly next time — no re-reasoning required.
+autoMate provides persistent, reusable scripts. Once you automate a task, it's saved and runs instantly next time. Cloud Vision mode also lets autoMate do its own screen parsing without relying on Claude's vision.
 
 **Q: Why does Claude sometimes use Windows MCP / filesystem MCP instead of autoMate?**  
 Update to v0.4.0+ — the server description now explicitly tells Claude when to use autoMate vs other MCPs.
 
-**Q: Does it work with apps that change their UI frequently?**  
-Coordinate-based hints (`[click:coord=x,y]`) are fragile to UI changes. For resilient scripts, describe the step in natural language and let Claude re-locate the element each run.
+**Q: Do I need a GPU for Cloud Vision?**  
+No — everything runs on HuggingFace Inference Endpoints in the cloud. You only need a HF token and deployed endpoints.
 
 **Q: Does it work on macOS / Linux?**  
 Yes — all three platforms. This is the main advantage over Quicker (Windows-only).
