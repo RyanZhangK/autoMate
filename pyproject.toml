@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 # ---------------------------------------------------------------------------
 [project]
 name = "automate-mcp"
-version = "0.3.0"
-description = "Zero-config desktop automation MCP server — give any LLM hands and eyes to control your desktop"
+version = "0.6.0"
+description = "Desktop automation + API Tool Center MCP server — connect 14 platforms and control any desktop app"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -59,6 +59,11 @@ cli = [
     "click>=8.0",
     "rich>=13.0",
 ]
+# Cloud vision — screen parsing + action reasoning via HF Inference Endpoints
+# Zero local GPU required; all inference runs in the cloud.
+cloud = [
+    "pillow>=10.0",
+]
 # Everything (core + vision + cli)
 full = [
     "automate-mcp[vision]",
@@ -84,9 +89,8 @@ Issues     = "https://github.com/yuruotong1/autoMate/issues"
 # Package discovery
 # ---------------------------------------------------------------------------
 [tool.setuptools.packages.find]
-include = ["auto_control*", "core*", "util*"]
+include = ["integrations*", "auto_control*", "core*", "util*"]
 
 [tool.setuptools]
-# mcp_server.py is the only module needed for the MCP server (uvx automate-mcp)
-# cli.py and core/auto_control/util are included for local development
-py-modules = ["mcp_server", "cli"]
+# mcp_server.py is the entry point; integrations/ provides the API Tool Center
+py-modules = ["mcp_server", "cli", "cloud_vision"]
