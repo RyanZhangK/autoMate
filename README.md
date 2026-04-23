@@ -2,14 +2,14 @@
 
 <img src="./imgs/logo.png" width="120" height="120" alt="autoMate logo">
 <h1>autoMate</h1>
-<p><b>🤖 API Tool Center + Desktop Automation — One MCP, 14 Platforms</b></p>
+<p><b>🤖 API Tool Center + Desktop Automation — One MCP, 26 Platforms</b></p>
 
 [中文](./README_CN.md) | [日本語](./README_JA.md)
 
 [![PyPI](https://img.shields.io/pypi/v/automate-mcp)](https://pypi.org/project/automate-mcp/)
 [![License](https://img.shields.io/github/license/yuruotong1/autoMate)](LICENSE)
 
-> Connect Slack, Notion, GitHub, 飞书, 钉钉, Telegram and 9 more — plus full desktop GUI automation
+> Connect 飞书, 钉钉, Slack, GitHub, Notion, Telegram, Zoom, Sentry and 18 more — plus full desktop GUI automation
 
 https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
@@ -21,13 +21,13 @@ https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
 autoMate is an MCP server that works in **two modes**:
 
-**Mode 1 — API Tool Center:** Connect to 14 major platforms (Chinese + international) by setting environment variables. Claude gains native tools for each platform — send Slack messages, create GitHub issues, post to 飞书, query Notion databases, and much more — without any extra MCP server.
+**Mode 1 — API Tool Center:** Set environment variables for the platforms you use — autoMate auto-registers native tools for each one. Send messages, create issues, search contacts, track errors, send emails, query maps — all from one MCP.
 
-**Mode 2 — Desktop GUI Automation:** Give Claude hands and eyes to control any desktop application, even apps with no API — 剪映, Photoshop, AutoCAD, SAP, WeChat, internal tools.
+**Mode 2 — Desktop GUI Automation:** Give Claude hands and eyes to control any desktop application with no API — 剪映, Photoshop, AutoCAD, SAP, internal tools.
 
 | Mode | Requires | What it does |
 |------|---------|-------------|
-| **API Tool Center** | Platform env vars | Native tools for 14 platforms |
+| **API Tool Center** | Platform env vars (set only what you need) | Native tools for 26 platforms |
 | **Desktop Automation** | Nothing (zero-config) | Click, type, screenshot any desktop app |
 | **Cloud Vision** | HuggingFace token | Autonomous UI parsing + action reasoning |
 
@@ -35,7 +35,7 @@ autoMate is an MCP server that works in **two modes**:
 
 ## ✨ Features
 
-- 🔗 **14 platform integrations** — Chinese and international, auto-activated by env var
+- 🔗 **26 platform integrations** — Chinese and international, zero overhead for unused ones
 - 🖥️ **Automates apps with no API** — if it has a GUI, autoMate can drive it
 - 📚 **Reusable script library** — save workflows once, run forever
 - ☁️ **Cloud Vision** — OmniParser + UI-TARS via HuggingFace, zero local GPU
@@ -81,7 +81,9 @@ Add env vars for whichever platforms you use:
         "GITHUB_TOKEN": "ghp_...",
         "NOTION_API_KEY": "secret_...",
         "FEISHU_APP_ID": "cli_...",
-        "FEISHU_APP_SECRET": "..."
+        "FEISHU_APP_SECRET": "...",
+        "SENTRY_AUTH_TOKEN": "...",
+        "SENTRY_ORG_SLUG": "my-org"
       }
     }
   }
@@ -105,7 +107,7 @@ Settings → MCP Servers → Add:
 
 ---
 
-## 🔗 API Tool Center — Supported Platforms
+## 🔗 API Tool Center — 26 Supported Platforms
 
 ### Chinese Platforms
 
@@ -116,20 +118,47 @@ Settings → MCP Servers → Add:
 | 企业微信 (WeCom) | `WECOM_CORP_ID`, `WECOM_CORP_SECRET`, `WECOM_AGENT_ID` | Send text/markdown, get department users |
 | 微信公众号 (WeChat MP) | `WEIXIN_APP_ID`, `WEIXIN_APP_SECRET` | Send template messages, get followers |
 | 微博 (Weibo) | `WEIBO_ACCESS_TOKEN` | Post weibo, get timeline, get profile |
+| Gitee (码云) | `GITEE_ACCESS_TOKEN` | Create/list issues, create PRs, get repo info |
+| 语雀 (Yuque) | `YUQUE_TOKEN` | List knowledge bases, list/get/create docs |
+| 高德地图 (Amap) | `AMAP_API_KEY` | Geocode, reverse geocode, POI search, driving routes |
 
-### International Platforms
+### Messaging & Collaboration
 
 | Platform | Env Vars | Tools |
 |----------|----------|-------|
 | Slack | `SLACK_BOT_TOKEN` | Send messages, list channels, get history, reply threads |
-| GitHub | `GITHUB_TOKEN` | Create/list issues, create PRs, search repos, get repo info |
 | Telegram | `TELEGRAM_BOT_TOKEN` | Send messages/photos, get updates, get bot info |
 | Discord | `DISCORD_BOT_TOKEN` | Send messages, get messages, list channels, send DMs |
+| Microsoft Teams | `TEAMS_WEBHOOK_URL` | Send messages, rich cards, color-coded alerts |
+| Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | Create meetings, list meetings, get meeting details |
 | Twitter/X | `TWITTER_BEARER_TOKEN` | Search tweets, get user info, get user tweets |
+
+### DevOps & Engineering
+
+| Platform | Env Vars | Tools |
+|----------|----------|-------|
+| GitHub | `GITHUB_TOKEN` | Create/list issues, create PRs, search repos, get repo info |
+| GitLab | `GITLAB_TOKEN`, `GITLAB_BASE_URL` | Create/list issues, create MRs, list pipelines |
+| Sentry | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG_SLUG` | List/get issues, list projects, resolve issues |
+
+### Project Management
+
+| Platform | Env Vars | Tools |
+|----------|----------|-------|
 | Notion | `NOTION_API_KEY` | Search, create pages, query databases, append blocks |
 | Airtable | `AIRTABLE_API_KEY` | List/create/update/search records |
 | Linear | `LINEAR_API_KEY` | Create/list issues, list teams, update issues |
 | Jira | `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL` | Create/search/get issues, transition status |
+| Trello | `TRELLO_API_KEY`, `TRELLO_TOKEN` | List boards/lists/cards, create cards |
+| HubSpot | `HUBSPOT_ACCESS_TOKEN` | Create/search contacts, create/list deals |
+
+### Email & Marketing
+
+| Platform | Env Vars | Tools |
+|----------|----------|-------|
+| SendGrid | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | Send emails, bulk send, get delivery stats |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | Send SMS, list messages, get account info |
+| Mailchimp | `MAILCHIMP_API_KEY` | List audiences, add subscribers, list campaigns |
 
 ---
 
@@ -224,7 +253,7 @@ created: 2025-01-01
 ## 📝 FAQ
 
 **Q: Which integrations are active?**  
-Only integrations whose env vars are all set. Unset ones are silently skipped — no errors.
+Only integrations whose env vars are all set. Unset ones are silently skipped — no errors, no overhead.
 
 **Q: How is desktop automation different from browser MCP / Windows MCP?**  
 Those MCPs handle web and OS operations. autoMate handles desktop GUI apps with no API — like 剪映, Photoshop, SAP, or any internal tool.

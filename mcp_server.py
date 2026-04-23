@@ -73,8 +73,11 @@ MODE 1 — API TOOL CENTER (set env vars to activate)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Integrations automatically registered when env vars are present:
 
-Chinese platforms: 飞书 (FEISHU_APP_ID+SECRET), 钉钉 (DINGTALK_WEBHOOK), 企业微信 (WECOM_*), 微信公众号 (WEIXIN_*), 微博 (WEIBO_ACCESS_TOKEN)
-International: Slack (SLACK_BOT_TOKEN), GitHub (GITHUB_TOKEN), Telegram (TELEGRAM_BOT_TOKEN), Discord (DISCORD_BOT_TOKEN), Twitter/X (TWITTER_BEARER_TOKEN), Notion (NOTION_API_KEY), Airtable (AIRTABLE_API_KEY), Linear (LINEAR_API_KEY), Jira (JIRA_EMAIL+API_TOKEN+BASE_URL)
+Chinese: 飞书 (FEISHU_APP_ID+SECRET), 钉钉 (DINGTALK_WEBHOOK), 企业微信 (WECOM_*), 微信公众号 (WEIXIN_*), 微博 (WEIBO_ACCESS_TOKEN), Gitee (GITEE_ACCESS_TOKEN), 语雀 (YUQUE_TOKEN), 高德地图 (AMAP_API_KEY)
+Messaging: Slack (SLACK_BOT_TOKEN), Telegram (TELEGRAM_BOT_TOKEN), Discord (DISCORD_BOT_TOKEN), Microsoft Teams (TEAMS_WEBHOOK_URL), Zoom (ZOOM_ACCOUNT_ID+CLIENT_ID+SECRET), Twitter/X (TWITTER_BEARER_TOKEN), Twilio (TWILIO_ACCOUNT_SID+AUTH_TOKEN+FROM_NUMBER)
+DevOps: GitHub (GITHUB_TOKEN), GitLab (GITLAB_TOKEN), Sentry (SENTRY_AUTH_TOKEN+ORG_SLUG)
+Productivity: Notion (NOTION_API_KEY), Airtable (AIRTABLE_API_KEY), Linear (LINEAR_API_KEY), Jira (JIRA_EMAIL+API_TOKEN+BASE_URL), Trello (TRELLO_API_KEY+TOKEN), HubSpot (HUBSPOT_ACCESS_TOKEN)
+Email/Marketing: SendGrid (SENDGRID_API_KEY+FROM_EMAIL), Mailchimp (MAILCHIMP_API_KEY)
 
 WHEN TO USE these tools: sending messages, creating issues/tasks, querying databases, posting content — any task using the above platforms.
 

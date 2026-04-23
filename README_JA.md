@@ -2,14 +2,14 @@
 
 <img src="./imgs/logo.png" width="120" height="120" alt="autoMate logo">
 <h1>autoMate</h1>
-<p><b>🤖 APIツールセンター + デスクトップ自動化 — 1つのMCPで14プラットフォーム</b></p>
+<p><b>🤖 APIツールセンター + デスクトップ自動化 — 1つのMCPで26プラットフォーム</b></p>
 
 [English](./README.md) | [中文](./README_CN.md)
 
 [![PyPI](https://img.shields.io/pypi/v/automate-mcp)](https://pypi.org/project/automate-mcp/)
 [![License](https://img.shields.io/github/license/yuruotong1/autoMate)](LICENSE)
 
-> Slack、Notion、GitHub、飞书、钉钉、Telegramなど14プラットフォームを接続 + APIなしのデスクトップアプリを制御
+> 飞书、钉钉、Slack、GitHub、Notion、Zoom、Sentryなど26プラットフォームを接続 + APIなしのデスクトップアプリを制御
 
 https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
@@ -21,13 +21,13 @@ https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
 autoMateは**2つのモード**を持つMCPサーバーです：
 
-**モード1 — APIツールセンター：** 環境変数を設定するだけで14のプラットフォームに接続。Claudeが各プラットフォームのネイティブツールを利用できます — Slackにメッセージ送信、GitHubにIssue作成、飞书に通知、Notionデータベースをクエリ — 追加のMCPサーバー不要。
+**モード1 — APIツールセンター：** 必要なプラットフォームの環境変数を設定するだけで、そのプラットフォームのネイティブツールが自動登録されます。メッセージ送信、Issue作成、連絡先検索、エラー監視、メール送信、地図検索 — すべて1つのMCPで。
 
 **モード2 — デスクトップGUI自動化：** ClaudeにAPIなしのデスクトップアプリ（Photoshop、AutoCAD、SAP、社内ツールなど）を操作する手と目を与えます。
 
 | モード | 必要な設定 | 動作内容 |
 |--------|-----------|---------|
-| **APIツールセンター** | 各プラットフォームの環境変数 | 14プラットフォームのネイティブツール |
+| **APIツールセンター** | 各プラットフォームの環境変数（必要分のみ） | 26プラットフォームのネイティブツール |
 | **デスクトップ自動化** | なし（ゼロ設定） | クリック・入力・スクリーンショット |
 | **クラウドビジョン** | HuggingFaceトークン | 自律UI解析 + アクション推論 |
 
@@ -35,7 +35,7 @@ autoMateは**2つのモード**を持つMCPサーバーです：
 
 ## ✨ 主な機能
 
-- 🔗 **14プラットフォーム統合** — 国内・国際対応、環境変数で自動有効化
+- 🔗 **26プラットフォーム統合** — 国内・国際対応、未設定の統合はゼロオーバーヘッド
 - 🖥️ **APIなしアプリを自動化** — GUIがあれば動かせる
 - 📚 **再利用可能なスクリプトライブラリ** — ワークフローを一度保存して永久に再利用
 - ☁️ **クラウドビジョン** — OmniParser + UI-TARSによる自律UI理解、ローカルGPU不要
@@ -79,31 +79,19 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
       "env": {
         "SLACK_BOT_TOKEN": "xoxb-...",
         "GITHUB_TOKEN": "ghp_...",
-        "NOTION_API_KEY": "secret_..."
+        "SENTRY_AUTH_TOKEN": "...",
+        "SENTRY_ORG_SLUG": "my-org"
       }
     }
   }
 }
 ```
 
-設定した分だけ有効になります — 未設定の統合は無視されます。
-
-### Cursor / Windsurf / Cline
-
-設定 → MCPサーバー → 追加：
-
-```json
-{
-  "automate": {
-    "command": "uvx",
-    "args": ["automate-mcp@latest"]
-  }
-}
-```
+設定した分だけ有効 — 未設定の統合はエラーなく無視されます。
 
 ---
 
-## 🔗 APIツールセンター — 対応プラットフォーム
+## 🔗 APIツールセンター — 26対応プラットフォーム
 
 ### 中国プラットフォーム
 
@@ -114,20 +102,47 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
 | 企業WeChat (WeCom) | `WECOM_CORP_ID`, `WECOM_CORP_SECRET`, `WECOM_AGENT_ID` | テキスト/Markdown送信、部門メンバー取得 |
 | WeChat公式アカウント | `WEIXIN_APP_ID`, `WEIXIN_APP_SECRET` | テンプレートメッセージ送信、フォロワー取得 |
 | 微博 (Weibo) | `WEIBO_ACCESS_TOKEN` | 投稿、タイムライン取得、プロフィール取得 |
+| Gitee (码云) | `GITEE_ACCESS_TOKEN` | Issue作成/一覧、PR作成、リポジトリ情報 |
+| 語雀 (Yuque) | `YUQUE_TOKEN` | ナレッジベース一覧、ドキュメント一覧/取得/作成 |
+| 高德地图 (Amap) | `AMAP_API_KEY` | ジオコード、逆ジオコード、POI検索、ドライブルート |
 
-### 国際プラットフォーム
+### メッセージ & コラボレーション
 
 | プラットフォーム | 環境変数 | ツール |
 |---------------|---------|-------|
 | Slack | `SLACK_BOT_TOKEN` | メッセージ送信、チャンネル一覧、履歴取得、スレッド返信 |
-| GitHub | `GITHUB_TOKEN` | Issue作成/一覧、PR作成、リポジトリ検索 |
 | Telegram | `TELEGRAM_BOT_TOKEN` | メッセージ/写真送信、更新取得、Bot情報 |
 | Discord | `DISCORD_BOT_TOKEN` | メッセージ送信/取得、チャンネル一覧、DM送信 |
+| Microsoft Teams | `TEAMS_WEBHOOK_URL` | メッセージ送信、リッチカード、カラーアラート |
+| Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | 会議作成、会議一覧、会議詳細取得 |
 | Twitter/X | `TWITTER_BEARER_TOKEN` | ツイート検索、ユーザー情報、ユーザーのツイート取得 |
+
+### DevOps & エンジニアリング
+
+| プラットフォーム | 環境変数 | ツール |
+|---------------|---------|-------|
+| GitHub | `GITHUB_TOKEN` | Issue作成/一覧、PR作成、リポジトリ検索 |
+| GitLab | `GITLAB_TOKEN`, `GITLAB_BASE_URL` | Issue作成/一覧、MR作成、パイプライン一覧 |
+| Sentry | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG_SLUG` | エラー一覧/取得、プロジェクト一覧、解決済みにする |
+
+### プロジェクト管理
+
+| プラットフォーム | 環境変数 | ツール |
+|---------------|---------|-------|
 | Notion | `NOTION_API_KEY` | 検索、ページ作成、データベースクエリ、ブロック追加 |
 | Airtable | `AIRTABLE_API_KEY` | レコードの一覧/作成/更新/検索 |
 | Linear | `LINEAR_API_KEY` | Issue作成/一覧、チーム一覧、Issue更新 |
 | Jira | `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL` | Issue作成/検索/取得、ステータス移行 |
+| Trello | `TRELLO_API_KEY`, `TRELLO_TOKEN` | ボード/リスト/カード一覧、カード作成 |
+| HubSpot | `HUBSPOT_ACCESS_TOKEN` | 連絡先作成/検索、商談作成/一覧 |
+
+### メール & マーケティング
+
+| プラットフォーム | 環境変数 | ツール |
+|---------------|---------|-------|
+| SendGrid | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | メール送信、一括送信、配信統計取得 |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | SMS送信、メッセージ一覧、アカウント情報 |
+| Mailchimp | `MAILCHIMP_API_KEY` | オーディエンス一覧、購読者追加、キャンペーン一覧 |
 
 ---
 
@@ -169,28 +184,10 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
 
 ---
 
-## ☁️ クラウドビジョン（オプション）
-
-HuggingFaceの環境変数を追加することで自律的な画面解析とアクション推論が可能になります：
-
-```json
-"env": {
-  "AUTOMATE_HF_TOKEN": "hf_...",
-  "AUTOMATE_SCREEN_PARSER_URL": "https://your-omniparser-endpoint.aws.endpoints.huggingface.cloud",
-  "AUTOMATE_ACTION_MODEL_URL": "https://your-uitars-endpoint.aws.endpoints.huggingface.cloud",
-  "AUTOMATE_ACTION_MODEL_NAME": "ByteDance-Seed/UI-TARS-1.5-7B",
-  "AUTOMATE_HF_NAMESPACE": "your-hf-username",
-  "AUTOMATE_SCREEN_PARSER_ENDPOINT": "omniparser-v2",
-  "AUTOMATE_ACTION_MODEL_ENDPOINT": "ui-tars-1-5-7b"
-}
-```
-
----
-
 ## 📝 よくある質問
 
 **Q: どの統合が有効になりますか？**  
-環境変数が全て設定されている統合のみ有効になります。未設定の統合はエラーなく無視されます。
+環境変数が全て設定されている統合のみ有効になります。未設定の統合はエラーなく無視され、パフォーマンスへの影響もありません。
 
 **Q: Claudeが他のMCPを使ってしまう**  
 v0.4.0以降にアップデートしてください。各MCPの使いどころが明確になりました。

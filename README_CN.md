@@ -2,14 +2,14 @@
 
 <img src="./imgs/logo.png" width="120" height="120" alt="autoMate logo">
 <h1>autoMate</h1>
-<p><b>🤖 API 工具中心 + 桌面自动化 — 一个 MCP，接入 14 个平台</b></p>
+<p><b>🤖 API 工具中心 + 桌面自动化 — 一个 MCP，接入 26 个平台</b></p>
 
 [English](./README.md) | [日本語](./README_JA.md)
 
 [![PyPI](https://img.shields.io/pypi/v/automate-mcp)](https://pypi.org/project/automate-mcp/)
 [![License](https://img.shields.io/github/license/yuruotong1/autoMate)](LICENSE)
 
-> 一个 MCP，连接飞书、钉钉、Slack、GitHub、Notion 等 14 个平台，同时控制任何没有 API 的桌面软件
+> 一个 MCP，连接飞书、钉钉、Slack、GitHub、Notion、Zoom、Sentry 等 26 个平台，同时控制任何没有 API 的桌面软件
 
 https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
@@ -29,13 +29,13 @@ https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
 autoMate 是一个 MCP Server，提供**两种核心能力**：
 
-**模式一 — API 工具中心：** 通过设置环境变量，接入 14 个主流平台（国内 + 国际）。Claude 获得每个平台的原生工具——发 Slack 消息、创建 GitHub Issue、发飞书通知、查 Notion 数据库，无需安装额外的 MCP Server。
+**模式一 — API 工具中心：** 设置对应平台的环境变量，autoMate 自动注册该平台的原生工具。发消息、创建 Issue、搜索联系人、监控报错、发邮件、查地图——全部通过同一个 MCP 完成。
 
-**模式二 — 桌面 GUI 自动化：** 让 Claude 拥有双手和眼睛，操控任何没有 API 的桌面软件——剪映、Photoshop、AutoCAD、SAP、微信、企业内部系统。
+**模式二 — 桌面 GUI 自动化：** 让 Claude 拥有双手和眼睛，操控任何没有 API 的桌面软件——剪映、Photoshop、AutoCAD、SAP、企业内部系统。
 
 | 模式 | 需要什么 | 做什么 |
 |------|---------|--------|
-| **API 工具中心** | 各平台的环境变量 | 14 个平台的原生工具 |
+| **API 工具中心** | 各平台环境变量（按需配置） | 26 个平台的原生工具 |
 | **桌面自动化** | 无需任何配置 | 点击、输入、截图，控制任何桌面软件 |
 | **云端视觉** | HuggingFace Token | 自主界面解析 + 动作推理 |
 
@@ -43,7 +43,7 @@ autoMate 是一个 MCP Server，提供**两种核心能力**：
 
 ## ✨ 功能特点
 
-- 🔗 **14 个平台集成** — 国内国际全覆盖，配置环境变量自动激活
+- 🔗 **26 个平台集成** — 国内国际全覆盖，未配置的集成零开销
 - 🖥️ **专为无 API 的桌面软件而生** — 有界面就能自动化
 - 📚 **可复用脚本库** — 工作流保存一次，永久复用
 - ☁️ **云端视觉** — 云端 OmniParser 解析界面 + UI-TARS 推理，无需本地 GPU
@@ -89,14 +89,15 @@ autoMate 是一个 MCP Server，提供**两种核心能力**：
         "FEISHU_APP_SECRET": "...",
         "DINGTALK_WEBHOOK": "https://oapi.dingtalk.com/robot/send?access_token=...",
         "SLACK_BOT_TOKEN": "xoxb-...",
-        "GITHUB_TOKEN": "ghp_..."
+        "GITHUB_TOKEN": "ghp_...",
+        "AMAP_API_KEY": "..."
       }
     }
   }
 }
 ```
 
-只需配置你用到的平台——未配置的集成会被静默跳过。
+只需配置你用到的平台——未配置的集成会被静默跳过，不产生任何开销。
 
 ### Cursor / Windsurf / Cline
 
@@ -113,7 +114,7 @@ autoMate 是一个 MCP Server，提供**两种核心能力**：
 
 ---
 
-## 🔗 API 工具中心 — 已支持平台
+## 🔗 API 工具中心 — 26 个已支持平台
 
 ### 国内平台
 
@@ -124,20 +125,47 @@ autoMate 是一个 MCP Server，提供**两种核心能力**：
 | 企业微信 (WeCom) | `WECOM_CORP_ID`, `WECOM_CORP_SECRET`, `WECOM_AGENT_ID` | 发文本/Markdown、查部门成员 |
 | 微信公众号 | `WEIXIN_APP_ID`, `WEIXIN_APP_SECRET` | 发模板消息、获取关注者、查用户信息 |
 | 微博 | `WEIBO_ACCESS_TOKEN` | 发微博、看时间线、查个人资料 |
+| Gitee (码云) | `GITEE_ACCESS_TOKEN` | 创建/查询 Issue、创建 PR、查仓库信息 |
+| 语雀 (Yuque) | `YUQUE_TOKEN` | 查知识库、查/获取/创建文档 |
+| 高德地图 (Amap) | `AMAP_API_KEY` | 地理编码、逆地理编码、POI 搜索、驾车路线 |
 
-### 国际平台
+### 消息与协作
 
 | 平台 | 环境变量 | 工具能力 |
 |------|---------|---------|
 | Slack | `SLACK_BOT_TOKEN` | 发消息、查频道、获取历史、回复 Thread |
-| GitHub | `GITHUB_TOKEN` | 创建/查询 Issue、创建 PR、搜索仓库、查仓库信息 |
 | Telegram | `TELEGRAM_BOT_TOKEN` | 发文字/图片、获取更新、查 Bot 信息 |
 | Discord | `DISCORD_BOT_TOKEN` | 发消息、查消息、查频道列表、发私信 |
+| Microsoft Teams | `TEAMS_WEBHOOK_URL` | 发消息、富文本卡片、彩色告警通知 |
+| Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | 创建会议、查会议列表、获取会议详情 |
 | Twitter/X | `TWITTER_BEARER_TOKEN` | 搜索推文、查用户信息、获取用户推文 |
+
+### DevOps 与工程
+
+| 平台 | 环境变量 | 工具能力 |
+|------|---------|---------|
+| GitHub | `GITHUB_TOKEN` | 创建/查询 Issue、创建 PR、搜索仓库、查仓库信息 |
+| GitLab | `GITLAB_TOKEN`, `GITLAB_BASE_URL` | 创建/查询 Issue、创建 MR、查 Pipeline |
+| Sentry | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG_SLUG` | 查/获取错误、查项目列表、标记已解决 |
+
+### 项目管理
+
+| 平台 | 环境变量 | 工具能力 |
+|------|---------|---------|
 | Notion | `NOTION_API_KEY` | 搜索、创建页面、查询数据库、追加块 |
 | Airtable | `AIRTABLE_API_KEY` | 查/创建/更新/搜索记录 |
 | Linear | `LINEAR_API_KEY` | 创建/查询 Issue、查团队列表、更新 Issue |
 | Jira | `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL` | 创建/搜索/查询 Issue、流转状态 |
+| Trello | `TRELLO_API_KEY`, `TRELLO_TOKEN` | 查看看板/列表/卡片、创建卡片 |
+| HubSpot | `HUBSPOT_ACCESS_TOKEN` | 创建/搜索联系人、创建/查询商机 |
+
+### 邮件与营销
+
+| 平台 | 环境变量 | 工具能力 |
+|------|---------|---------|
+| SendGrid | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | 发邮件、批量发送、查看投递统计 |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | 发短信、查消息记录、查账户信息 |
+| Mailchimp | `MAILCHIMP_API_KEY` | 查受众列表、添加订阅者、查看邮件活动 |
 
 ---
 
@@ -219,20 +247,12 @@ created: 2025-01-01
 5. 等待导出完成 [wait:5]
 ```
 
-| 提示 | 操作 |
-|------|------|
-| `[click:coord=320,240]` | 点击绝对屏幕坐标 |
-| `[type:文字内容]` | 输入文字 |
-| `[key:ctrl+s]` | 按快捷键 |
-| `[wait:2]` | 等待 2 秒 |
-| `[scroll_up]` / `[scroll_down]` | 滚动页面 |
-
 ---
 
 ## 📝 常见问题
 
 **Q：哪些集成是激活的？**  
-只有环境变量全部设置的集成才会激活。未配置的平台会被静默跳过，不会报错。
+只有环境变量全部设置的集成才会激活。未配置的平台会被静默跳过，不会报错，也不会影响性能。
 
 **Q：和 filesystem MCP / browser MCP 有什么区别？**  
 那些 MCP 负责文件操作和网页。autoMate 专门处理没有 API 的桌面软件——如剪映、Photoshop、SAP、企业内部系统。

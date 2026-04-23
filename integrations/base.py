@@ -65,5 +65,16 @@ class BaseIntegration(ABC):
             return {"error": e.code, "msg": e.read().decode()}
 
     @staticmethod
+    def put(url: str, data: dict, headers: dict | None = None) -> dict:
+        body = json.dumps(data).encode()
+        h = {"Content-Type": "application/json", **(headers or {})}
+        req = urllib.request.Request(url, data=body, headers=h, method="PUT")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            return {"error": e.code, "msg": e.read().decode()}
+
+    @staticmethod
     def ok(result: dict) -> str:
         return json.dumps(result, ensure_ascii=False, indent=2)

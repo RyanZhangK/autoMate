@@ -1,41 +1,79 @@
 """Integration auto-discovery and registration."""
 from __future__ import annotations
 
+# Chinese platforms
 from .feishu import FeishuIntegration
 from .dingtalk import DingTalkIntegration
 from .wecom import WeComIntegration
 from .weixin import WeixinIntegration
 from .weibo import WeiboIntegration
-from .notion import NotionIntegration
+from .gitee import GiteeIntegration
+from .yuque import YuqueIntegration
+from .amap import AmapIntegration
+
+# International messaging & collaboration
 from .slack import SlackIntegration
-from .github_api import GitHubIntegration
 from .telegram import TelegramIntegration
 from .discord import DiscordIntegration
-from .twitter import TwitterIntegration
+from .teams import TeamsIntegration
+from .zoom import ZoomIntegration
+
+# DevOps & code hosting
+from .github_api import GitHubIntegration
+from .gitlab import GitLabIntegration
+from .sentry import SentryIntegration
+
+# Project management
+from .notion import NotionIntegration
 from .airtable import AirtableIntegration
 from .linear import LinearIntegration
 from .jira import JiraIntegration
+from .trello import TrelloIntegration
+from .hubspot import HubSpotIntegration
+
+# Communication & marketing
+from .twitter import TwitterIntegration
+from .sendgrid import SendGridIntegration
+from .twilio import TwilioIntegration
+from .mailchimp import MailchimpIntegration
 
 ALL_INTEGRATIONS = [
+    # Chinese
     FeishuIntegration(),
     DingTalkIntegration(),
     WeComIntegration(),
     WeixinIntegration(),
     WeiboIntegration(),
-    NotionIntegration(),
+    GiteeIntegration(),
+    YuqueIntegration(),
+    AmapIntegration(),
+    # Messaging & collaboration
     SlackIntegration(),
-    GitHubIntegration(),
     TelegramIntegration(),
     DiscordIntegration(),
-    TwitterIntegration(),
+    TeamsIntegration(),
+    ZoomIntegration(),
+    # DevOps
+    GitHubIntegration(),
+    GitLabIntegration(),
+    SentryIntegration(),
+    # Project management
+    NotionIntegration(),
     AirtableIntegration(),
     LinearIntegration(),
     JiraIntegration(),
+    TrelloIntegration(),
+    HubSpotIntegration(),
+    # Communication & marketing
+    TwitterIntegration(),
+    SendGridIntegration(),
+    TwilioIntegration(),
+    MailchimpIntegration(),
 ]
 
 
 def register_all(mcp) -> list[str]:
-    """Register all configured integrations with the MCP server. Returns list of registered integration names."""
+    """Register all configured integrations. Returns list of activated integration labels."""
     registered = []
     for integration in ALL_INTEGRATIONS:
         if integration.is_configured():
@@ -45,7 +83,7 @@ def register_all(mcp) -> list[str]:
 
 
 def get_configured_summary() -> str:
-    """Return a human-readable summary of which integrations are configured."""
+    """Return a human-readable summary of which integrations are active."""
     configured = [i for i in ALL_INTEGRATIONS if i.is_configured()]
     unconfigured = [i for i in ALL_INTEGRATIONS if not i.is_configured()]
     lines = []
