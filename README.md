@@ -2,14 +2,14 @@
 
 <img src="./imgs/logo.png" width="120" height="120" alt="autoMate logo">
 <h1>autoMate</h1>
-<p><b>🤖 API Tool Center + Desktop Automation — One MCP, 26 Platforms</b></p>
+<p><b>🤖 API Tool Center + Desktop Automation — One MCP, 31 Platforms</b></p>
 
 [中文](./README_CN.md) | [日本語](./README_JA.md)
 
 [![PyPI](https://img.shields.io/pypi/v/automate-mcp)](https://pypi.org/project/automate-mcp/)
 [![License](https://img.shields.io/github/license/yuruotong1/autoMate)](LICENSE)
 
-> Connect 飞书, 钉钉, Slack, GitHub, Notion, Telegram, Zoom, Sentry and 18 more — plus full desktop GUI automation
+> The only MCP server that combines 31 platform integrations + desktop GUI automation — local-first, zero cloud dependency, your credentials never leave your machine
 
 https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
@@ -21,27 +21,30 @@ https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
 autoMate is an MCP server that works in **two modes**:
 
-**Mode 1 — API Tool Center:** Set environment variables for the platforms you use — autoMate auto-registers native tools for each one. Send messages, create issues, search contacts, track errors, send emails, query maps — all from one MCP.
+**Mode 1 — API Tool Center:** Set environment variables for the platforms you use — autoMate auto-registers native tools for each one. Send messages, create issues, manage tasks, process payments, search contacts — all from one MCP.
 
 **Mode 2 — Desktop GUI Automation:** Give Claude hands and eyes to control any desktop application with no API — 剪映, Photoshop, AutoCAD, SAP, internal tools.
 
 | Mode | Requires | What it does |
 |------|---------|-------------|
-| **API Tool Center** | Platform env vars (set only what you need) | Native tools for 26 platforms |
+| **API Tool Center** | Platform env vars (set only what you need) | Native tools for 31 platforms |
 | **Desktop Automation** | Nothing (zero-config) | Click, type, screenshot any desktop app |
 | **Cloud Vision** | HuggingFace token | Autonomous UI parsing + action reasoning |
 
 ---
 
-## ✨ Features
+## ✨ Why autoMate?
 
-- 🔗 **26 platform integrations** — Chinese and international, zero overhead for unused ones
-- 🖥️ **Automates apps with no API** — if it has a GUI, autoMate can drive it
-- 📚 **Reusable script library** — save workflows once, run forever
-- ☁️ **Cloud Vision** — OmniParser + UI-TARS via HuggingFace, zero local GPU
-- 🧠 **Claude knows when to use it** — clear identity prevents autoMate from being bypassed
-- 🤖 **Zero config for desktop automation** — no API keys needed to get started
-- 🌍 **Cross-platform** — Windows, macOS, Linux
+| | autoMate | Composio | Zapier MCP | Claude Connectors |
+|---|---|---|---|---|
+| **Setup** | Set an env var | Create account + OAuth | Web login + URL copy | claude.ai login |
+| **Chinese platforms** | 8 (unique) | None | None | None |
+| **GUI automation** | Yes | No | No | No |
+| **Local / private** | Yes — runs on your machine | No — cloud only | No — cloud only | No — Anthropic cloud |
+| **Open source** | Yes | Closed-source tools | Closed | Closed |
+| **Cost** | Free | Free tier + paid | 2 tasks per call | Pro/Enterprise plan |
+
+**autoMate's unique position:** The only MCP server that is simultaneously local-first, Chinese-platform-native, open-source, and combines API integrations with desktop GUI automation.
 
 ---
 
@@ -80,6 +83,7 @@ Add env vars for whichever platforms you use:
         "SLACK_BOT_TOKEN": "xoxb-...",
         "GITHUB_TOKEN": "ghp_...",
         "NOTION_API_KEY": "secret_...",
+        "STRIPE_SECRET_KEY": "sk_live_...",
         "FEISHU_APP_ID": "cli_...",
         "FEISHU_APP_SECRET": "...",
         "SENTRY_AUTH_TOKEN": "...",
@@ -90,7 +94,7 @@ Add env vars for whichever platforms you use:
 }
 ```
 
-Only set the ones you need — unused integrations are silently skipped.
+Only set the ones you need — unused integrations are silently skipped, zero overhead.
 
 ### Cursor / Windsurf / Cline
 
@@ -107,7 +111,7 @@ Settings → MCP Servers → Add:
 
 ---
 
-## 🔗 API Tool Center — 26 Supported Platforms
+## 🔗 API Tool Center — 31 Supported Platforms
 
 ### Chinese Platforms
 
@@ -132,6 +136,7 @@ Settings → MCP Servers → Add:
 | Microsoft Teams | `TEAMS_WEBHOOK_URL` | Send messages, rich cards, color-coded alerts |
 | Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | Create meetings, list meetings, get meeting details |
 | Twitter/X | `TWITTER_BEARER_TOKEN` | Search tweets, get user info, get user tweets |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | Send SMS, list messages, get account info |
 
 ### DevOps & Engineering
 
@@ -141,7 +146,7 @@ Settings → MCP Servers → Add:
 | GitLab | `GITLAB_TOKEN`, `GITLAB_BASE_URL` | Create/list issues, create MRs, list pipelines |
 | Sentry | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG_SLUG` | List/get issues, list projects, resolve issues |
 
-### Project Management
+### Project Management & Knowledge
 
 | Platform | Env Vars | Tools |
 |----------|----------|-------|
@@ -149,15 +154,24 @@ Settings → MCP Servers → Add:
 | Airtable | `AIRTABLE_API_KEY` | List/create/update/search records |
 | Linear | `LINEAR_API_KEY` | Create/list issues, list teams, update issues |
 | Jira | `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL` | Create/search/get issues, transition status |
+| Confluence | `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`, `CONFLUENCE_BASE_URL` | Search/get/create pages, list spaces |
 | Trello | `TRELLO_API_KEY`, `TRELLO_TOKEN` | List boards/lists/cards, create cards |
+| Asana | `ASANA_ACCESS_TOKEN` | List workspaces/projects/tasks, create/update tasks |
+| Monday.com | `MONDAY_API_KEY` | List boards/items, create items, list groups |
 | HubSpot | `HUBSPOT_ACCESS_TOKEN` | Create/search contacts, create/list deals |
+
+### Payments & E-commerce
+
+| Platform | Env Vars | Tools |
+|----------|----------|-------|
+| Stripe | `STRIPE_SECRET_KEY` | Get balance, list/create customers, list payments/subscriptions |
+| Shopify | `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ACCESS_TOKEN` | List products/orders/customers, get shop info |
 
 ### Email & Marketing
 
 | Platform | Env Vars | Tools |
 |----------|----------|-------|
 | SendGrid | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | Send emails, bulk send, get delivery stats |
-| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | Send SMS, list messages, get account info |
 | Mailchimp | `MAILCHIMP_API_KEY` | List audiences, add subscribers, list campaigns |
 
 ---
@@ -255,8 +269,8 @@ created: 2025-01-01
 **Q: Which integrations are active?**  
 Only integrations whose env vars are all set. Unset ones are silently skipped — no errors, no overhead.
 
-**Q: How is desktop automation different from browser MCP / Windows MCP?**  
-Those MCPs handle web and OS operations. autoMate handles desktop GUI apps with no API — like 剪映, Photoshop, SAP, or any internal tool.
+**Q: How is this different from Composio or Zapier MCP?**  
+Composio and Zapier route your API calls through their cloud servers and require account creation. autoMate runs entirely on your machine — your credentials stay local. autoMate also covers Chinese platforms (Feishu, DingTalk, WeChat, etc.) that no cloud-hosted MCP service supports, and bundles desktop GUI automation for apps with no API.
 
 **Q: Do I need a GPU for Cloud Vision?**  
 No — everything runs on HuggingFace Inference Endpoints. You only need a HF token and deployed endpoints.

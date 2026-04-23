@@ -37,6 +37,15 @@ from .sendgrid import SendGridIntegration
 from .twilio import TwilioIntegration
 from .mailchimp import MailchimpIntegration
 
+# Payments & e-commerce
+from .stripe import StripeIntegration
+from .shopify import ShopifyIntegration
+
+# Additional project management & knowledge
+from .confluence import ConfluenceIntegration
+from .asana import AsanaIntegration
+from .monday import MondayIntegration
+
 ALL_INTEGRATIONS = [
     # Chinese
     FeishuIntegration(),
@@ -57,13 +66,19 @@ ALL_INTEGRATIONS = [
     GitHubIntegration(),
     GitLabIntegration(),
     SentryIntegration(),
-    # Project management
+    # Project management & knowledge
     NotionIntegration(),
     AirtableIntegration(),
     LinearIntegration(),
     JiraIntegration(),
+    ConfluenceIntegration(),
     TrelloIntegration(),
+    AsanaIntegration(),
+    MondayIntegration(),
     HubSpotIntegration(),
+    # Payments & e-commerce
+    StripeIntegration(),
+    ShopifyIntegration(),
     # Communication & marketing
     TwitterIntegration(),
     SendGridIntegration(),

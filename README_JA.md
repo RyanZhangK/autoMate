@@ -2,14 +2,14 @@
 
 <img src="./imgs/logo.png" width="120" height="120" alt="autoMate logo">
 <h1>autoMate</h1>
-<p><b>🤖 APIツールセンター + デスクトップ自動化 — 1つのMCPで26プラットフォーム</b></p>
+<p><b>🤖 APIツールセンター + デスクトップ自動化 — 1つのMCPで31プラットフォーム</b></p>
 
 [English](./README.md) | [中文](./README_CN.md)
 
 [![PyPI](https://img.shields.io/pypi/v/automate-mcp)](https://pypi.org/project/automate-mcp/)
 [![License](https://img.shields.io/github/license/yuruotong1/autoMate)](LICENSE)
 
-> 飞书、钉钉、Slack、GitHub、Notion、Zoom、Sentryなど26プラットフォームを接続 + APIなしのデスクトップアプリを制御
+> 31プラットフォームAPI統合 + デスクトップGUI自動化を同時に備える唯一のMCPサーバー — ローカル実行、クラウド依存ゼロ
 
 https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
@@ -21,27 +21,30 @@ https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
 
 autoMateは**2つのモード**を持つMCPサーバーです：
 
-**モード1 — APIツールセンター：** 必要なプラットフォームの環境変数を設定するだけで、そのプラットフォームのネイティブツールが自動登録されます。メッセージ送信、Issue作成、連絡先検索、エラー監視、メール送信、地図検索 — すべて1つのMCPで。
+**モード1 — APIツールセンター：** 必要なプラットフォームの環境変数を設定するだけで、そのプラットフォームのネイティブツールが自動登録されます。メッセージ送信、Issue作成、タスク管理、決済処理、連絡先検索 — すべて1つのMCPで。
 
 **モード2 — デスクトップGUI自動化：** ClaudeにAPIなしのデスクトップアプリ（Photoshop、AutoCAD、SAP、社内ツールなど）を操作する手と目を与えます。
 
 | モード | 必要な設定 | 動作内容 |
 |--------|-----------|---------|
-| **APIツールセンター** | 各プラットフォームの環境変数（必要分のみ） | 26プラットフォームのネイティブツール |
+| **APIツールセンター** | 各プラットフォームの環境変数（必要分のみ） | 31プラットフォームのネイティブツール |
 | **デスクトップ自動化** | なし（ゼロ設定） | クリック・入力・スクリーンショット |
 | **クラウドビジョン** | HuggingFaceトークン | 自律UI解析 + アクション推論 |
 
 ---
 
-## ✨ 主な機能
+## ✨ なぜautoMateを選ぶのか？
 
-- 🔗 **26プラットフォーム統合** — 国内・国際対応、未設定の統合はゼロオーバーヘッド
-- 🖥️ **APIなしアプリを自動化** — GUIがあれば動かせる
-- 📚 **再利用可能なスクリプトライブラリ** — ワークフローを一度保存して永久に再利用
-- ☁️ **クラウドビジョン** — OmniParser + UI-TARSによる自律UI理解、ローカルGPU不要
-- 🧠 **Claudeが使いどころを理解** — 他のMCPに上書きされない明確なアイデンティティ
-- 🤖 **デスクトップ自動化はゼロ設定** — APIキー不要
-- 🌍 **クロスプラットフォーム** — Windows、macOS、Linux
+| | autoMate | Composio | Zapier MCP | Claude Connectors |
+|---|---|---|---|---|
+| **セットアップ** | 環境変数を設定するだけ | アカウント作成 + OAuth | Webログイン + URL貼付 | claude.aiログイン |
+| **中国プラットフォーム** | 8個（独自） | なし | なし | なし |
+| **GUI自動化** | あり | なし | なし | なし |
+| **ローカル実行** | はい — 自分のマシンで動作 | いいえ — クラウドのみ | いいえ — クラウドのみ | いいえ — Anthropicクラウド |
+| **オープンソース** | はい | ツールはクローズドソース | クローズド | クローズド |
+| **コスト** | 無料 | 無料枠 + 有料 | 1コール2タスク | Pro/Enterpriseプラン |
+
+**autoMateの独自ポジション：** ローカルファースト・中国プラットフォーム対応・オープンソース・API統合とデスクトップGUI自動化の組み合わせ — これらをすべて同時に満たす唯一のMCPサーバー。
 
 ---
 
@@ -79,6 +82,7 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
       "env": {
         "SLACK_BOT_TOKEN": "xoxb-...",
         "GITHUB_TOKEN": "ghp_...",
+        "STRIPE_SECRET_KEY": "sk_live_...",
         "SENTRY_AUTH_TOKEN": "...",
         "SENTRY_ORG_SLUG": "my-org"
       }
@@ -91,7 +95,7 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
 
 ---
 
-## 🔗 APIツールセンター — 26対応プラットフォーム
+## 🔗 APIツールセンター — 31対応プラットフォーム
 
 ### 中国プラットフォーム
 
@@ -116,6 +120,7 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
 | Microsoft Teams | `TEAMS_WEBHOOK_URL` | メッセージ送信、リッチカード、カラーアラート |
 | Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | 会議作成、会議一覧、会議詳細取得 |
 | Twitter/X | `TWITTER_BEARER_TOKEN` | ツイート検索、ユーザー情報、ユーザーのツイート取得 |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | SMS送信、メッセージ一覧、アカウント情報 |
 
 ### DevOps & エンジニアリング
 
@@ -125,7 +130,7 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
 | GitLab | `GITLAB_TOKEN`, `GITLAB_BASE_URL` | Issue作成/一覧、MR作成、パイプライン一覧 |
 | Sentry | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG_SLUG` | エラー一覧/取得、プロジェクト一覧、解決済みにする |
 
-### プロジェクト管理
+### プロジェクト管理 & ナレッジ
 
 | プラットフォーム | 環境変数 | ツール |
 |---------------|---------|-------|
@@ -133,15 +138,24 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
 | Airtable | `AIRTABLE_API_KEY` | レコードの一覧/作成/更新/検索 |
 | Linear | `LINEAR_API_KEY` | Issue作成/一覧、チーム一覧、Issue更新 |
 | Jira | `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL` | Issue作成/検索/取得、ステータス移行 |
+| Confluence | `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`, `CONFLUENCE_BASE_URL` | ページ検索/取得/作成、Space一覧 |
 | Trello | `TRELLO_API_KEY`, `TRELLO_TOKEN` | ボード/リスト/カード一覧、カード作成 |
+| Asana | `ASANA_ACCESS_TOKEN` | ワークスペース/プロジェクト/タスク一覧、タスク作成/更新 |
+| Monday.com | `MONDAY_API_KEY` | ボード/アイテム一覧、アイテム作成、グループ一覧 |
 | HubSpot | `HUBSPOT_ACCESS_TOKEN` | 連絡先作成/検索、商談作成/一覧 |
+
+### 決済 & Eコマース
+
+| プラットフォーム | 環境変数 | ツール |
+|---------------|---------|-------|
+| Stripe | `STRIPE_SECRET_KEY` | 残高確認、顧客一覧/作成、支払い/サブスクリプション一覧 |
+| Shopify | `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ACCESS_TOKEN` | 商品/注文/顧客一覧、ショップ情報取得 |
 
 ### メール & マーケティング
 
 | プラットフォーム | 環境変数 | ツール |
 |---------------|---------|-------|
 | SendGrid | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | メール送信、一括送信、配信統計取得 |
-| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | SMS送信、メッセージ一覧、アカウント情報 |
 | Mailchimp | `MAILCHIMP_API_KEY` | オーディエンス一覧、購読者追加、キャンペーン一覧 |
 
 ---
@@ -189,8 +203,8 @@ Claude Desktopを再起動すれば完了。`@latest`により毎回起動時に
 **Q: どの統合が有効になりますか？**  
 環境変数が全て設定されている統合のみ有効になります。未設定の統合はエラーなく無視され、パフォーマンスへの影響もありません。
 
-**Q: Claudeが他のMCPを使ってしまう**  
-v0.4.0以降にアップデートしてください。各MCPの使いどころが明確になりました。
+**Q: ComposioやZapier MCPとの違いは？**  
+ComposioとZapier MCPはAPIコールをクラウドサーバー経由で処理し、アカウント作成が必要です。autoMateは完全にローカルで動作し、認証情報が外部に出ることはありません。また、Feishu・DingTalk・WeChatなど中国プラットフォームへの対応と、APIなしアプリ向けのデスクトップGUI自動化機能も備えています。
 
 **Q: クラウドビジョンにGPUは必要ですか？**  
 不要です。HuggingFace Inference Endpointsで動作するため、HFトークンがあれば十分です。
