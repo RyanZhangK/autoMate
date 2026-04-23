@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 # ---------------------------------------------------------------------------
 [project]
 name = "automate-mcp"
-version = "0.7.0"
-description = "Desktop automation + API Tool Center MCP server — connect 26 platforms and control any desktop app"
+version = "0.8.0"
+description = "Desktop automation + API Tool Center MCP server — connect 31 platforms and control any desktop app"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
