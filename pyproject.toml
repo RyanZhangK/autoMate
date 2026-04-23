@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 # ---------------------------------------------------------------------------
 [project]
 name = "automate-mcp"
-version = "0.5.0"
-description = "Zero-config desktop automation MCP server — give any LLM hands and eyes to control your desktop"
+version = "0.7.0"
+description = "Desktop automation + API Tool Center MCP server — connect 26 platforms and control any desktop app"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -89,9 +89,8 @@ Issues     = "https://github.com/yuruotong1/autoMate/issues"
 # Package discovery
 # ---------------------------------------------------------------------------
 [tool.setuptools.packages.find]
-include = ["auto_control*", "core*", "util*"]
+include = ["integrations*", "auto_control*", "core*", "util*"]
 
 [tool.setuptools]
-# mcp_server.py is the only module needed for the MCP server (uvx automate-mcp)
-# cli.py and core/auto_control/util are included for local development
+# mcp_server.py is the entry point; integrations/ provides the API Tool Center
 py-modules = ["mcp_server", "cli", "cloud_vision"]

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-autoMate MCP Server — Desktop GUI Automation for Apps Without APIs
+autoMate MCP Server — API Tool Center + Desktop GUI Automation
 
 Zero-config setup:
 {
   "mcpServers": {
     "automate": {
       "command": "uvx",
-      "args": ["automate-mcp"]
+      "args": ["automate-mcp@latest"]
     }
   }
 }
@@ -66,35 +66,57 @@ _setup_logging()
 mcp = FastMCP(
     "automate",
     instructions="""
-autoMate controls desktop GUI applications that have NO API and NO dedicated MCP server.
+autoMate has TWO modes:
 
-WHEN TO USE autoMate:
-- Automating desktop apps like 剪映, Photoshop, AutoCAD, WeChat, DingTalk, SAP, WPS, or any internal company tool
-- Running saved automation scripts (macros) by name
-- Recording a new reusable automation workflow
-- Any task where the target is a desktop window with buttons, menus, or forms
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODE 1 — API TOOL CENTER (set env vars to activate)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Integrations automatically registered when env vars are present:
 
-WHEN NOT TO USE autoMate (use a dedicated MCP instead):
-- File/folder operations → use filesystem MCP
-- Windows system settings → use Windows MCP
-- Web browsing / web scraping → use browser MCP
-- Git operations → use git MCP
+Chinese: 飞书 (FEISHU_APP_ID+SECRET), 钉钉 (DINGTALK_WEBHOOK), 企业微信 (WECOM_*), 微信公众号 (WEIXIN_*), 微博 (WEIBO_ACCESS_TOKEN), Gitee (GITEE_ACCESS_TOKEN), 语雀 (YUQUE_TOKEN), 高德地图 (AMAP_API_KEY)
+Messaging: Slack (SLACK_BOT_TOKEN), Telegram (TELEGRAM_BOT_TOKEN), Discord (DISCORD_BOT_TOKEN), Microsoft Teams (TEAMS_WEBHOOK_URL), Zoom (ZOOM_ACCOUNT_ID+CLIENT_ID+SECRET), Twitter/X (TWITTER_BEARER_TOKEN), Twilio (TWILIO_ACCOUNT_SID+AUTH_TOKEN+FROM_NUMBER)
+DevOps: GitHub (GITHUB_TOKEN), GitLab (GITLAB_TOKEN), Sentry (SENTRY_AUTH_TOKEN+ORG_SLUG)
+Productivity: Notion (NOTION_API_KEY), Airtable (AIRTABLE_API_KEY), Linear (LINEAR_API_KEY), Jira (JIRA_EMAIL+API_TOKEN+BASE_URL), Trello (TRELLO_API_KEY+TOKEN), HubSpot (HUBSPOT_ACCESS_TOKEN)
+Email/Marketing: SendGrid (SENDGRID_API_KEY+FROM_EMAIL), Mailchimp (MAILCHIMP_API_KEY)
+
+WHEN TO USE these tools: sending messages, creating issues/tasks, querying databases, posting content — any task using the above platforms.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODE 2 — DESKTOP GUI AUTOMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Controls desktop applications that have NO API and NO dedicated MCP server.
+
+WHEN TO USE: Automating 剪映, Photoshop, AutoCAD, WeChat desktop, SAP, WPS, or any internal tool with no API
+WHEN NOT TO USE: File ops → filesystem MCP; Web → browser MCP; Git → git MCP
 
 TYPICAL WORKFLOW:
 1. Call `screenshot` to see the current screen
 2. Call `run_script` if a saved script exists for this task
-3. Otherwise use `click`, `type_text`, `press_key`, `scroll` to interact step by step
+3. Otherwise use `click`, `type_text`, `press_key`, `scroll` step by step
 4. Call `save_script` to save the workflow for future reuse
 
-CLOUD VISION WORKFLOW (optional — requires env vars):
-1. Call `warm_endpoints` to wake up scaled-to-zero HF endpoints
-2. Call `parse_screen` to detect all UI elements (icons, text, buttons) via OmniParser
-3. Call `reason_action` to let a vision-language model decide the next action
-4. Or call `smart_act` for the full autonomous loop: parse → reason → execute
-
-autoMate is the ONLY tool that can automate desktop GUI apps with no API.
+CLOUD VISION (optional — requires AUTOMATE_* env vars):
+1. `warm_endpoints` → wake up HF Inference Endpoints
+2. `parse_screen` → detect UI elements via OmniParser V2
+3. `reason_action` → let UI-TARS decide the next action
+4. `smart_act` → full autonomous loop: parse → reason → execute
 """,
 )
+
+
+# ---------------------------------------------------------------------------
+# Auto-register API integrations (only those with env vars configured)
+# ---------------------------------------------------------------------------
+
+try:
+    from integrations import register_all, get_configured_summary
+    _registered = register_all(mcp)
+    if _registered:
+        logger.info("Registered integrations: %s", ", ".join(_registered))
+    else:
+        logger.info("No API integrations configured (no env vars set)")
+except Exception as _e:
+    logger.warning("Failed to load integrations: %s", _e)
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +288,6 @@ def list_scripts() -> str:
     lines = [f"Found {len(files)} script(s) in {SCRIPTS_DIR}:\n"]
     for f in files:
         content = f.read_text(encoding="utf-8")
-        # Extract description from frontmatter
         desc = ""
         m = re.search(r"^description:\s*(.+)$", content, re.MULTILINE)
         if m:
@@ -292,7 +313,6 @@ def run_script(name: str) -> str:
         hint = f" Available: {', '.join(available)}" if available else " No scripts saved yet."
         return f"Script '{name}' not found.{hint}"
 
-    # Parse and execute steps from ## Steps section
     steps_match = re.search(r"##\s+Steps\s*\n(.*?)(?=\n##|\Z)", content, re.DOTALL)
     if not steps_match:
         return f"Script '{name}' has no ## Steps section."
@@ -305,7 +325,6 @@ def run_script(name: str) -> str:
         if not line or not re.match(r"^\d+\.", line):
             continue
 
-        # Extract hints from the step line
         hints = re.findall(r"\[([a-z_]+):([^\]]*)\]", line, re.IGNORECASE)
 
         if not hints:
@@ -362,10 +381,6 @@ def save_script(name: str, description: str, steps: str) -> str:
         steps: The steps in Markdown format. Each step on a new line starting
                with a number. Add hints like [click:coord=x,y], [type:text],
                [key:ctrl+s], [wait:2] to make steps executable.
-               Example:
-                 1. Open export dialog [key:ctrl+e]
-                 2. Set resolution to 1080p [click:coord=320,480]
-                 3. Click export button [click:coord=800,600]
     """
     content = f"""---
 name: {name}
@@ -427,7 +442,6 @@ def install_script(url: str) -> str:
     except Exception as e:
         return f"Failed to fetch script: {e}"
 
-    # Extract name from frontmatter
     m = re.search(r"^name:\s*(.+)$", content, re.MULTILINE)
     if not m:
         return "Invalid script: missing 'name' in frontmatter."
