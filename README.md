@@ -11,8 +11,6 @@
 
 > The only MCP server that combines 31 platform integrations + desktop GUI automation — local-first, zero cloud dependency, your credentials never leave your machine
 
-https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
-
 </div>
 
 ---

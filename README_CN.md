@@ -11,8 +11,6 @@
 
 > 唯一同时具备 31 个平台集成 + 桌面 GUI 自动化的 MCP Server — 本地运行，零云端依赖，API Key 不离开你的机器
 
-https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
-
 </div>
 
 > **特别声明：** autoMate 项目仍处于快速迭代阶段。更深入的设计思考与 AI+RPA 研究笔记，会在 [知识星球「AI桐木和他的贵人们」](https://t.zsxq.com/x1cCW) 中分享。

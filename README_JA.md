@@ -11,8 +11,6 @@
 
 > 31プラットフォームAPI統合 + デスクトップGUI自動化を同時に備える唯一のMCPサーバー — ローカル実行、クラウド依存ゼロ
 
-https://github.com/user-attachments/assets/bf27f8bd-136b-402e-bc7d-994b99bcc368
-
 </div>
 
 ---
