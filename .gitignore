@@ -8,6 +8,7 @@ tmp/
 # PyInstaller / build output
 /build/
 /dist/
+/release/
 # macOS
 .DS_Store
 # autoMate runtime data when AUTOMATE_HOME isn't overridden

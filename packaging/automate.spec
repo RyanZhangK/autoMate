@@ -1,7 +1,7 @@
 # PyInstaller spec for autoMate v1.0+
 #
-# Build:
-#   pip install -e '.[full]' pyinstaller
+# Build (from project root):
+#   pip install -e '.[mcp,browser]' pyinstaller
 #   pyinstaller packaging/automate.spec --noconfirm
 #
 # Output: dist/automate/automate(.exe)  — a self-contained binary that ships
@@ -10,14 +10,19 @@
 # loads it into Chrome unpacked).
 
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+import os
+from PyInstaller.utils.hooks import collect_submodules
+
+# Resolve paths relative to this spec file so the build works from any CWD.
+HERE = os.path.dirname(os.path.abspath(SPEC))
+PROJECT_ROOT = os.path.dirname(HERE)
 
 block_cipher = None
 
 datas = [
-    ("../automate/frontend/index.html", "automate/frontend"),
-    ("../automate/frontend/app.js",     "automate/frontend"),
-    ("../automate/frontend/styles.css", "automate/frontend"),
+    (os.path.join(PROJECT_ROOT, "automate/frontend/index.html"), "automate/frontend"),
+    (os.path.join(PROJECT_ROOT, "automate/frontend/app.js"),     "automate/frontend"),
+    (os.path.join(PROJECT_ROOT, "automate/frontend/styles.css"), "automate/frontend"),
 ]
 
 hiddenimports = []
@@ -32,15 +37,16 @@ hiddenimports += [
 ]
 
 a = Analysis(
-    ["../automate/__main__.py"],
-    pathex=["."],
+    [os.path.join(HERE, "launcher.py")],
+    pathex=[PROJECT_ROOT],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["torch", "torchvision", "ultralytics", "supervision", "modelscope", "tensorflow"],
+    excludes=["torch", "torchvision", "ultralytics", "supervision",
+              "modelscope", "tensorflow", "matplotlib", "scipy", "pandas"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
