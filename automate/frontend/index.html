@@ -16,10 +16,14 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
       <div class="bg-gradient-to-br from-zinc-900 to-zinc-700 text-white p-8">
         <div class="text-3xl font-bold mb-2">Welcome to autoMate</div>
-        <p class="text-zinc-300 text-sm leading-relaxed">
+        <p class="text-zinc-300 text-sm leading-relaxed mb-3">
           autoMate is a scheduling hub that gives any LLM hands. It lives on
           your machine and lets a chat assistant run real commands, drive your
-          browser, and call your SaaS accounts on your behalf.
+          browser, and call your SaaS accounts.
+        </p>
+        <p class="text-zinc-400 text-xs leading-relaxed">
+          Use the chat in this window — or wire autoMate into Claude Code,
+          Kimi, ChatGPT, even a local Ollama. One hub, any AI.
         </p>
       </div>
 
@@ -77,9 +81,143 @@
             </button>
             <button @click="dismissWelcome(true)"
                     class="text-xs bg-zinc-900 text-white rounded-md px-4 py-2">
-              Configure my first model →
+              Walk me through setup →
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETUP WIZARD (replaces the cold modal) ============ -->
+  <div x-show="wizardOpen" x-cloak x-transition.opacity
+       class="fixed inset-0 bg-zinc-100 z-30 overflow-y-auto">
+    <div class="max-w-3xl mx-auto p-6 sm:p-12">
+      <div class="flex items-center justify-between mb-6">
+        <button @click="closeWizard()" class="text-sm text-zinc-500 hover:text-zinc-900">← Back</button>
+        <div class="flex gap-2 text-xs">
+          <span class="px-2 py-1 rounded-full" :class="wizardStep === 1 ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-500'">1 · Pick a provider</span>
+          <span class="px-2 py-1 rounded-full" :class="wizardStep === 2 ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-500'">2 · Get a key</span>
+          <span class="px-2 py-1 rounded-full" :class="wizardStep === 3 ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-500'">3 · Done</span>
+        </div>
+      </div>
+
+      <!-- Step 1: pick a provider -->
+      <div x-show="wizardStep === 1">
+        <h1 class="text-2xl font-semibold mb-1">Which AI do you want autoMate to use?</h1>
+        <p class="text-sm text-zinc-500 mb-6">
+          Pick whichever you already have an account with — or one of the free ones.
+          You can change this later.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <template x-for="p in wizardPicks" :key="p.id">
+            <button @click="pickWizardProvider(p)"
+                    class="text-left bg-white border rounded-xl p-4 hover:border-zinc-900 hover:shadow-sm transition">
+              <div class="font-semibold text-sm" x-text="p.title"></div>
+              <div class="text-xs text-zinc-500 mt-0.5" x-text="p.subtitle"></div>
+              <div class="text-[11px] text-zinc-400 mt-2 leading-relaxed" x-text="p.hint"></div>
+            </button>
+          </template>
+        </div>
+        <div class="text-xs text-zinc-500 mt-6">
+          Don't see what you want?
+          <button @click="closeWizard(); active='models'" class="underline">See all 25 providers →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: guided connect -->
+      <div x-show="wizardStep === 2 && wizardChoice">
+        <h1 class="text-2xl font-semibold mb-1" x-text="`Connect ${wizardChoice?.title}`"></h1>
+        <p class="text-sm text-zinc-500 mb-6" x-text="wizardChoice?.subtitle"></p>
+
+        <div class="bg-white border rounded-xl p-6 space-y-5">
+          <!-- Step 2a: get a key -->
+          <div x-show="catalogById[wizardChoice?.id]?.requires_key !== false">
+            <div class="flex items-start gap-4">
+              <div class="w-7 h-7 rounded-full bg-zinc-900 text-white grid place-items-center font-bold text-xs flex-shrink-0">A</div>
+              <div class="flex-1">
+                <div class="font-semibold text-sm">Get an API key</div>
+                <p class="text-xs text-zinc-500 mt-1 leading-relaxed" x-text="wizardChoice?.hint"></p>
+                <a :href="catalogById[wizardChoice?.id]?.api_key_url" target="_blank"
+                   class="inline-block mt-2 bg-blue-600 text-white text-xs px-3 py-1.5 rounded-md">
+                  Open the API-keys page →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div x-show="catalogById[wizardChoice?.id]?.requires_key === false"
+               class="bg-emerald-50 border border-emerald-200 rounded-md p-3 text-xs text-emerald-800">
+            ✓ This provider doesn't need an API key. Make sure the local server is running, then click Connect below.
+          </div>
+
+          <!-- Step 2b: paste -->
+          <div class="flex items-start gap-4 pt-2 border-t"
+               x-show="catalogById[wizardChoice?.id]?.requires_key !== false">
+            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white grid place-items-center font-bold text-xs flex-shrink-0">B</div>
+            <div class="flex-1">
+              <div class="font-semibold text-sm mb-1">Paste it here</div>
+              <input type="password" x-model="editForm.api_key"
+                     placeholder="paste the key, then click Connect below"
+                     class="w-full border rounded-md px-2 py-2 font-mono text-xs" />
+            </div>
+          </div>
+
+          <!-- Per-provider hint -->
+          <p x-show="catalogById[wizardChoice?.id]?.notes"
+             class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3"
+             x-text="catalogById[wizardChoice?.id]?.notes"></p>
+
+          <!-- Connect button -->
+          <button @click="wizardConnect()" :disabled="saving"
+                  class="w-full bg-zinc-900 text-white rounded-md px-3 py-3 text-sm font-medium disabled:opacity-50">
+            <span x-show="!saving">Connect and test</span>
+            <span x-show="saving">Testing…</span>
+          </button>
+
+          <!-- Result -->
+          <div x-show="testResult" class="text-xs p-3 rounded-md whitespace-pre-wrap"
+               :class="testResult?.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'">
+            <div class="font-medium mb-1" x-text="testResult?.ok ? '✓ Connected' : '✕ Failed'"></div>
+            <div x-text="testResult?.message"></div>
+            <div x-show="!testResult?.ok && testResult?.hint" class="mt-2 text-[11px]"
+                 x-text="testResult?.hint"></div>
+          </div>
+
+          <!-- Tweak model -->
+          <div x-show="catalogById[wizardChoice?.id]?.models?.length"
+               class="text-xs text-zinc-500 pt-2 border-t">
+            Using model:
+            <select x-model="editForm.default_model" class="border rounded px-2 py-1 ml-1">
+              <template x-for="m in catalogById[wizardChoice?.id]?.models || []" :key="m">
+                <option :value="m" x-text="m"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: done -->
+      <div x-show="wizardStep === 3" class="text-center py-12">
+        <div class="text-5xl mb-3">🎉</div>
+        <h1 class="text-2xl font-semibold mb-2">You're set up</h1>
+        <p class="text-sm text-zinc-500 mb-8 max-w-md mx-auto">
+          autoMate is now wired to <strong x-text="wizardChoice?.title"></strong>.
+          Try a chat below, or wire it into another AI you use.
+        </p>
+        <div class="flex gap-3 justify-center flex-wrap">
+          <button @click="closeWizard(); active='chat'"
+                  class="bg-zinc-900 text-white text-sm px-4 py-2 rounded-md">
+            Open the chat →
+          </button>
+          <button @click="closeWizard(); active='connect'"
+                  class="bg-white border text-sm px-4 py-2 rounded-md hover:bg-zinc-50">
+            Connect another AI (Claude Code, Kimi, …)
+          </button>
+          <button @click="closeWizard(); active='integrations'"
+                  class="bg-white border text-sm px-4 py-2 rounded-md hover:bg-zinc-50">
+            Connect tools (GitHub, Notion, …)
+          </button>
         </div>
       </div>
     </div>
@@ -372,17 +510,17 @@
             <div class="text-4xl mb-3">🤖</div>
             <div class="font-semibold mb-1">No model configured yet</div>
             <p class="text-xs text-zinc-500 mb-4 leading-relaxed">
-              autoMate needs a brain to think with. Pick any LLM provider —
-              OpenAI, Claude, Kimi, DeepSeek, or run Ollama locally.
+              autoMate needs a brain to think with. We'll walk you through it —
+              pick a provider, paste a key, done.
             </p>
-            <button @click="active = 'models'"
+            <button @click="openWizard()"
                     class="bg-zinc-900 text-white px-4 py-2 rounded-md text-sm">
-              Configure a model →
+              Walk me through setup →
             </button>
-            <div class="mt-3">
-              <button @click="active = 'help'" class="text-xs text-zinc-500 hover:text-zinc-900 underline">
-                What is this thing?
-              </button>
+            <div class="mt-3 text-xs text-zinc-500">
+              <button @click="active = 'help'" class="hover:text-zinc-900 underline">What is this thing?</button>
+              <span class="mx-1">·</span>
+              <button @click="active = 'connect'" class="hover:text-zinc-900 underline">Use from a different AI</button>
             </div>
           </div>
         </div>
@@ -442,6 +580,53 @@
       </aside>
     </section>
 
+    <!-- ============ CONNECT ANY AI ============ -->
+    <section x-show="active === 'connect'">
+      <div class="mb-6">
+        <h1 class="text-2xl font-semibold">Use autoMate from any AI</h1>
+        <p class="text-sm text-zinc-500 mt-2 leading-relaxed max-w-2xl">
+          autoMate isn't only for the chat in this window. The same tools are
+          exposed in four ways so any LLM — Claude Code, Kimi, ChatGPT, a local
+          Ollama, even a basic web chat — can drive your machine through them.
+          Pick the snippet that matches what you're using and copy-paste.
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <template x-for="key in ['mcp', 'http', 'bridge', 'discover']" :key="key">
+          <div class="bg-white border rounded-xl overflow-hidden" x-show="connectInfo?.modes?.[key]">
+            <div class="p-5 border-b bg-zinc-50">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h2 class="font-semibold text-base" x-text="connectInfo?.modes?.[key]?.title"></h2>
+                  <p class="text-xs text-zinc-500 mt-1 leading-relaxed" x-text="connectInfo?.modes?.[key]?.subtitle"></p>
+                </div>
+                <button @click="copySnippet(key, connectInfo?.modes?.[key]?.content + (connectInfo?.modes?.[key]?.prompt ? '\n\n' + connectInfo.modes[key].prompt : ''))"
+                        class="bg-zinc-900 text-white text-xs px-3 py-1.5 rounded-md flex-shrink-0">
+                  <span x-show="copiedKey !== key">Copy</span>
+                  <span x-show="copiedKey === key">✓ Copied</span>
+                </button>
+              </div>
+              <p class="text-xs text-zinc-600 mt-3" x-text="connectInfo?.modes?.[key]?.instructions"></p>
+            </div>
+            <pre class="bg-zinc-900 text-zinc-100 text-xs p-4 overflow-x-auto" x-text="connectInfo?.modes?.[key]?.content"></pre>
+            <pre x-show="connectInfo?.modes?.[key]?.prompt"
+                 class="bg-zinc-800 text-zinc-100 text-xs p-4 overflow-x-auto border-t border-zinc-700"
+                 x-text="connectInfo?.modes?.[key]?.prompt"></pre>
+          </div>
+        </template>
+
+        <div class="text-xs text-zinc-500 leading-relaxed bg-zinc-50 border rounded-lg p-4">
+          <div class="font-semibold text-zinc-700 mb-1">A note on security</div>
+          autoMate binds to <code class="bg-white border px-1 rounded">127.0.0.1</code>
+          — only processes on this machine can reach the snippets above.
+          They do <em>not</em> work from another computer until you bind the
+          server to a public address (advanced users only — set
+          <code class="bg-white border px-1 rounded">AUTOMATE_HOST=0.0.0.0</code>).
+        </div>
+      </div>
+    </section>
+
     <!-- ============ HISTORY ============ -->
     <section x-show="active === 'history'">
       <h1 class="text-2xl font-semibold">Run history</h1>
@@ -477,6 +662,23 @@
           model like Claude Code) hand it a natural-language request, it
           plans, picks the right tool, and runs it locally.
         </p>
+      </div>
+
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="font-semibold text-base mb-1">The point: one hub, any AI</h2>
+            <p class="text-sm text-zinc-700 leading-relaxed">
+              The chat in this window is just one way to use autoMate. Copy a
+              short snippet, paste it into Claude Code / Kimi / ChatGPT / a
+              local Ollama, and that AI now has hands on your machine.
+            </p>
+          </div>
+          <button @click="active='connect'"
+                  class="bg-zinc-900 text-white text-xs px-3 py-2 rounded-md flex-shrink-0">
+            Get the snippet →
+          </button>
+        </div>
       </div>
 
       <!-- 30-second quickstart -->

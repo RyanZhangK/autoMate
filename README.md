@@ -1,14 +1,25 @@
 # autoMate
 
-> A scheduling hub that gives any LLM hands.
+> One hub. Any AI. Real hands.
 
-autoMate is a small local server with a browser UI. After install you open
-`http://127.0.0.1:8765`, plug in an API key for whichever LLM you like, and
-connect the SaaS accounts you want it to act on. From that point on, anything
-that speaks **HTTP** or **MCP** — Claude Code, Cursor, Cline, Kimi K2, your own
-script — can hand autoMate a natural-language request, and autoMate plans,
-picks tools, fills in parameters, and executes against your machine, your
-browser, and 30+ third-party APIs.
+autoMate is a small local server with a browser UI. Install it, point it at
+any LLM (OpenAI, Claude, Kimi, DeepSeek, Ollama — 25 providers in the
+catalog), and now **any AI can use it** — including AIs that don't natively
+support tool-calling. Copy a short snippet, paste it into Claude Code,
+Kimi, ChatGPT, or your local Ollama, and that AI now has hands on your
+machine: it can run shell commands, drive your real browser, control the
+desktop, and call 30+ SaaS APIs (GitHub, Notion, Slack, 飞书, ...).
+
+```
+   ┌─ Claude Code ──┐                              ┌─ shell.exec
+   ├─ Cursor / Cline├──── MCP ────┐                ├─ script.run (Py/Bash/Node)
+   ├─ Kimi K2 / GPT ├──── HTTP ───┤    autoMate    ├─ browser.* (Playwright)
+   ├─ Ollama / web  ├──── bridge ─┤   ───────►     ├─ bx.* (your real browser)
+   └─ your scripts  ┘             │                ├─ desktop.click/type
+                                  │                └─ 31 SaaS integrations
+                                  ▼
+                        ~/.automate/  · SQLite + encrypted creds
+```
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -42,11 +53,26 @@ browser, and 30+ third-party APIs.
 
 ## Why
 
-You already have a favourite coding assistant. It's good at planning. What it
+You already have a favourite AI assistant. It's good at planning. What it
 can't do is reach into _your_ Notion, _your_ GitHub, _your_ shell, _your_
 already-logged-in browser. autoMate is the executor that fills that gap. It
 lives on your machine, holds your credentials locally, and exposes a single
-clean surface that any upstream LLM can call.
+clean surface that any LLM — even ones that don't speak MCP, even ones that
+can only output text — can drive.
+
+### Connect any AI in 30 seconds
+
+Open the **Connect AI** tab in autoMate's UI; copy the snippet that matches
+what you're using. Four modes:
+
+| Mode      | For                                                    |
+|-----------|--------------------------------------------------------|
+| **MCP**   | Claude Code · Cursor · Cline · Kimi K2 · any MCP host  |
+| **HTTP**  | ChatGPT custom GPTs · n8n · Make · your own scripts    |
+| **Bridge**| Tool-less LLMs (basic Ollama, web chat) — relay script |
+| **OpenAPI** | Agents that can read schemas (`/openapi.json`)       |
+
+Or skip the snippets and just chat with autoMate directly in its own UI.
 
 - **Bring your own brain.** 25+ LLM providers in the catalog (OpenAI, Anthropic,
   Gemini, Kimi, Qwen, DeepSeek, Doubao, GLM, Yi, MiniMax, Hunyuan, Baichuan,

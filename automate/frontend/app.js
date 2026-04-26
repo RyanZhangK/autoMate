@@ -4,6 +4,7 @@ document.addEventListener("alpine:init", () => {
       { id: "chat",         label: "Chat" },
       { id: "models",       label: "Models" },
       { id: "integrations", label: "Tools" },
+      { id: "connect",      label: "Connect AI" },
       { id: "history",      label: "History" },
       { id: "help",         label: "Help" },
     ],
@@ -11,6 +12,20 @@ document.addEventListener("alpine:init", () => {
     region: "",
     status: null,
     welcomeOpen: false,
+    wizardOpen: false,
+    wizardStep: 1,
+    wizardChoice: null,        // selected provider id
+
+    // Curated 'popular' providers — shown first in the wizard. Order = ranking.
+    wizardPicks: [
+      { id: "anthropic", title: "Anthropic Claude", subtitle: "Best for coding & agents",       hint: "Sign in with email, no payment needed for API trial credit." },
+      { id: "openai",    title: "OpenAI",           subtitle: "GPT-4o · widely supported",       hint: "Pay-per-use, no subscription." },
+      { id: "kimi",      title: "Moonshot Kimi",    subtitle: "国内可直接访问",                  hint: "moonshot.cn account → 用户中心 → API Keys。" },
+      { id: "deepseek",  title: "DeepSeek",         subtitle: "便宜 + 国内访问",                 hint: "platform.deepseek.com → API keys → 充几块钱就够测试。" },
+      { id: "qwen",      title: "通义千问",          subtitle: "阿里 DashScope",                  hint: "需要阿里云账号,有免费额度。" },
+      { id: "zhipu",     title: "智谱 GLM",          subtitle: "glm-4-flash 永久免费",            hint: "open.bigmodel.cn → 用户中心 → API Keys。" },
+      { id: "ollama",    title: "Ollama (local)",   subtitle: "完全离线 · 不要 API key",         hint: "先 ollama.com 装上,然后跑 `ollama serve` + `ollama pull qwen2.5-coder`。" },
+    ],
     catalog: [],
     catalogById: {},
     providers: [],
@@ -35,6 +50,27 @@ document.addEventListener("alpine:init", () => {
     ws: null,
 
     runs: [],
+    connectInfo: null,
+    copiedKey: null,
+
+    async loadConnectInfo() {
+      try { this.connectInfo = await api("/api/connect"); }
+      catch (e) { console.warn(e); }
+    },
+    async copySnippet(key, text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        this.copiedKey = key;
+        setTimeout(() => { if (this.copiedKey === key) this.copiedKey = null; }, 1600);
+      } catch (e) {
+        // Fallback for old browsers
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand("copy"); document.body.removeChild(ta);
+        this.copiedKey = key;
+        setTimeout(() => { if (this.copiedKey === key) this.copiedKey = null; }, 1600);
+      }
+    },
 
     quickPrompts: [
       "在当前目录运行 `git status` 并总结",
@@ -102,10 +138,41 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
-    dismissWelcome(jumpToModels) {
+    dismissWelcome(jumpToWizard) {
       localStorage.setItem("automate-welcomed", "1");
       this.welcomeOpen = false;
-      if (jumpToModels) this.active = "models";
+      if (jumpToWizard) this.openWizard();
+    },
+
+    openWizard() {
+      this.wizardOpen = true;
+      this.wizardStep = 1;
+      this.wizardChoice = null;
+      this.editForm = { api_key: "", base_url: "", default_model: "" };
+      this.testResult = null;
+    },
+    pickWizardProvider(p) {
+      this.wizardChoice = p;
+      const meta = this.catalogById[p.id] || {};
+      this.editForm = {
+        api_key: "",
+        base_url: meta.base_url || "",
+        default_model: (meta.models && meta.models[0]) || "",
+      };
+      this.wizardStep = 2;
+      this.testResult = null;
+    },
+    async wizardConnect() {
+      // Pretend the wizard is the modal — reuse saveAndUse logic.
+      this.editingProvider = { id: this.wizardChoice.id, api_key_set: false };
+      await this.saveAndUse();
+      if (this.testResult?.ok) {
+        this.wizardStep = 3;        // celebrate
+      }
+    },
+    closeWizard() {
+      this.wizardOpen = false;
+      this.editingProvider = null;
     },
 
     async refreshAll() {
@@ -116,6 +183,7 @@ document.addEventListener("alpine:init", () => {
         this.loadIntegrations(),
         this.loadTools(),
         this.loadRuns(),
+        this.loadConnectInfo(),
       ]);
     },
 
