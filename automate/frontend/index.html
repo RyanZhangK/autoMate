@@ -10,6 +10,81 @@
 </head>
 <body class="bg-zinc-50 text-zinc-900 antialiased min-h-screen" x-data="app" x-init="init()">
 
+  <!-- ============ FIRST-RUN WELCOME MODAL ============ -->
+  <div x-show="welcomeOpen" x-cloak x-transition.opacity
+       class="fixed inset-0 bg-black/50 grid place-items-center z-30 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+      <div class="bg-gradient-to-br from-zinc-900 to-zinc-700 text-white p-8">
+        <div class="text-3xl font-bold mb-2">Welcome to autoMate</div>
+        <p class="text-zinc-300 text-sm leading-relaxed">
+          autoMate is a scheduling hub that gives any LLM hands. It lives on
+          your machine and lets a chat assistant run real commands, drive your
+          browser, and call your SaaS accounts on your behalf.
+        </p>
+      </div>
+
+      <div class="p-8 space-y-5">
+        <div class="text-xs uppercase tracking-wider text-zinc-500">Three steps to get going</div>
+
+        <ol class="space-y-4">
+          <li class="flex gap-4">
+            <div class="w-8 h-8 rounded-full bg-zinc-900 text-white grid place-items-center font-bold flex-shrink-0">1</div>
+            <div>
+              <div class="font-semibold text-sm">Configure a model</div>
+              <div class="text-xs text-zinc-500 mt-0.5">
+                Pick any LLM provider — OpenAI, Claude, Kimi, DeepSeek, 通义,
+                Ollama (local), and 20 more. Paste an API key, click "Use this".
+              </div>
+            </div>
+          </li>
+          <li class="flex gap-4">
+            <div class="w-8 h-8 rounded-full bg-zinc-200 text-zinc-700 grid place-items-center font-bold flex-shrink-0">2</div>
+            <div>
+              <div class="font-semibold text-sm">(Optional) Connect tools</div>
+              <div class="text-xs text-zinc-500 mt-0.5">
+                Notion, GitHub, Slack, 飞书 and 27 more. OAuth where supported,
+                API key elsewhere. Encrypted on disk.
+              </div>
+            </div>
+          </li>
+          <li class="flex gap-4">
+            <div class="w-8 h-8 rounded-full bg-zinc-200 text-zinc-700 grid place-items-center font-bold flex-shrink-0">3</div>
+            <div>
+              <div class="font-semibold text-sm">Chat</div>
+              <div class="text-xs text-zinc-500 mt-0.5">
+                Type anything. autoMate plans, picks the right tool, and runs
+                it. Live event stream shows every step.
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <div class="bg-zinc-50 border rounded-lg p-3 text-xs text-zinc-600">
+          <div class="font-semibold text-zinc-700 mb-1">Heads-up</div>
+          autoMate runs commands with full access to your machine. Treat it
+          like any local automation tool — only run what you'd run yourself.
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+          <button @click="dismissWelcome(false); active = 'help'"
+                  class="text-xs text-zinc-500 hover:text-zinc-900">
+            Read the full help instead
+          </button>
+          <div class="flex gap-2">
+            <button @click="dismissWelcome(false)"
+                    class="text-xs border rounded-md px-3 py-2 hover:bg-zinc-50">
+              I'll explore on my own
+            </button>
+            <button @click="dismissWelcome(true)"
+                    class="text-xs bg-zinc-900 text-white rounded-md px-4 py-2">
+              Configure my first model →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Top bar -->
   <header class="border-b bg-white sticky top-0 z-10">
     <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -210,7 +285,33 @@
           </div>
           <button @click="messages = []" class="text-xs text-zinc-500 hover:text-zinc-900">Clear</button>
         </div>
-        <div class="flex-1 overflow-y-auto p-4 space-y-3" x-ref="chatScroll">
+
+        <!-- Empty state when no model is configured -->
+        <div x-show="!status?.active_provider" class="flex-1 grid place-items-center text-center p-8">
+          <div class="max-w-sm">
+            <div class="text-4xl mb-3">🤖</div>
+            <div class="font-semibold mb-1">No model configured yet</div>
+            <p class="text-xs text-zinc-500 mb-4 leading-relaxed">
+              autoMate needs a brain to think with. Pick any LLM provider —
+              OpenAI, Claude, Kimi, DeepSeek, or run Ollama locally.
+            </p>
+            <button @click="active = 'models'"
+                    class="bg-zinc-900 text-white px-4 py-2 rounded-md text-sm">
+              Configure a model →
+            </button>
+            <div class="mt-3">
+              <button @click="active = 'help'" class="text-xs text-zinc-500 hover:text-zinc-900 underline">
+                What is this thing?
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div x-show="status?.active_provider" class="flex-1 overflow-y-auto p-4 space-y-3" x-ref="chatScroll">
+          <!-- Empty conversation hint -->
+          <div x-show="!messages.length && !liveEvents.length" class="text-center text-xs text-zinc-400 py-8">
+            Type a request below, or pick a quick prompt on the right →
+          </div>
           <template x-for="(m, i) in messages" :key="i">
             <div :class="m.role === 'user' ? 'ml-auto bg-zinc-900 text-white' : 'bg-zinc-100'"
                  class="max-w-[80%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap" x-text="m.text"></div>
@@ -283,6 +384,163 @@
         </table>
         <div x-show="!runs.length" class="p-6 text-center text-sm text-zinc-400">No runs yet.</div>
       </div>
+    </section>
+
+    <!-- ============ HELP ============ -->
+    <section x-show="active === 'help'" class="space-y-8 max-w-3xl">
+
+      <div>
+        <h1 class="text-2xl font-semibold">How autoMate works</h1>
+        <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
+          autoMate is a small server running on your machine. It exposes a
+          unified entry point that any LLM can call. When you (or an upstream
+          model like Claude Code) hand it a natural-language request, it
+          plans, picks the right tool, and runs it locally.
+        </p>
+      </div>
+
+      <!-- 30-second quickstart -->
+      <div class="bg-white border rounded-xl overflow-hidden">
+        <div class="bg-zinc-50 px-5 py-3 border-b text-xs uppercase tracking-wider text-zinc-500">
+          30-second quickstart
+        </div>
+        <div class="p-5 space-y-4 text-sm">
+          <div class="flex gap-4">
+            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white grid place-items-center font-bold flex-shrink-0 text-xs">1</div>
+            <div>
+              <div class="font-semibold">Configure a model</div>
+              <p class="text-xs text-zinc-500 mt-0.5">
+                Open the <button @click="active='models'" class="underline">Models</button> tab,
+                pick any provider, paste an API key, click "Use this".
+                Don't have one? Each card links to the provider's key page.
+                For free, run a local model with Ollama.
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="w-7 h-7 rounded-full bg-zinc-200 text-zinc-700 grid place-items-center font-bold flex-shrink-0 text-xs">2</div>
+            <div>
+              <div class="font-semibold">(Optional) Connect tools</div>
+              <p class="text-xs text-zinc-500 mt-0.5">
+                The <button @click="active='integrations'" class="underline">Tools</button> tab
+                has 31 SaaS connectors. autoMate stays local — keys are
+                Fernet-encrypted on disk and never leave your machine. OAuth
+                supported for GitHub, Notion, Slack, Linear, 飞书, 钉钉.
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="w-7 h-7 rounded-full bg-zinc-200 text-zinc-700 grid place-items-center font-bold flex-shrink-0 text-xs">3</div>
+            <div>
+              <div class="font-semibold">Chat</div>
+              <p class="text-xs text-zinc-500 mt-0.5">
+                The <button @click="active='chat'" class="underline">Chat</button> tab is your
+                command line. Type plain English (or Chinese, or anything).
+                The event stream shows every tool call so you can see
+                exactly what's happening.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Examples that work out of the box -->
+      <div>
+        <h2 class="text-lg font-semibold mb-2">Try these</h2>
+        <p class="text-xs text-zinc-500 mb-3">After a model is configured, paste these in the chat:</p>
+        <div class="space-y-2">
+          <template x-for="ex in helpExamples" :key="ex.text">
+            <div class="bg-white border rounded-lg p-3 flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-zinc-400" x-text="ex.kind"></div>
+                <div class="text-sm font-mono mt-0.5" x-text="ex.text"></div>
+                <div class="text-xs text-zinc-500 mt-1" x-text="ex.note"></div>
+              </div>
+              <button @click="active='chat'; input=ex.text"
+                      class="text-xs border rounded-md px-2 py-1 hover:bg-zinc-50 flex-shrink-0">
+                Try it
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Drive your real browser -->
+      <div class="bg-white border rounded-xl p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <h2 class="text-lg font-semibold">Use your real browser</h2>
+          <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded"
+                :class="status?.extension_connected ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'"
+                x-text="status?.extension_connected ? 'connected' : 'not connected'"></span>
+        </div>
+        <p class="text-sm text-zinc-600 leading-relaxed">
+          The <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">browser.*</code>
+          tools open a fresh empty Chromium tab via Playwright. To drive your
+          <strong>actual browser</strong> — with your tabs, your cookies, your
+          logins — install the autoMate Bridge extension. After that, the
+          <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">bx.*</code>
+          tools (<code class="text-xs">bx.click</code>, <code class="text-xs">bx.extract</code>,
+          <code class="text-xs">bx.navigate</code>, etc.) work against your real session.
+        </p>
+        <ol class="text-sm text-zinc-700 list-decimal list-inside mt-3 space-y-1">
+          <li>Find the <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">extension/</code> folder where you installed autoMate (or download <code class="text-xs">autoMate-extension.zip</code> from Releases).</li>
+          <li>Open <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">chrome://extensions</code>, toggle Developer mode.</li>
+          <li>Click "Load unpacked", select the folder.</li>
+          <li>The toolbar badge flips to a green <strong>ON</strong> when paired.</li>
+        </ol>
+      </div>
+
+      <!-- Use from upstream LLM clients -->
+      <div class="bg-white border rounded-xl p-5">
+        <h2 class="text-lg font-semibold mb-2">Hook up Claude Code / Cursor / Cline / Kimi</h2>
+        <p class="text-sm text-zinc-600 leading-relaxed">
+          autoMate also speaks MCP (Model Context Protocol). Add this to your
+          upstream client's MCP config so it sees autoMate's whole tool
+          catalog as native tools:
+        </p>
+        <pre class="bg-zinc-900 text-zinc-100 rounded-md p-3 text-xs mt-3 overflow-x-auto"><code>{
+  "mcpServers": {
+    "automate": { "command": "automate", "args": ["mcp"] }
+  }
+}</code></pre>
+        <p class="text-xs text-zinc-500 mt-3">
+          The upstream model gets one prompt-shaped <code>automate(prompt)</code>
+          tool plus every individual tool. <strong>They plan, we execute.</strong>
+        </p>
+      </div>
+
+      <!-- Tool catalog -->
+      <div>
+        <h2 class="text-lg font-semibold mb-2">All tools, by category</h2>
+        <p class="text-xs text-zinc-500 mb-3" x-text="`${totalToolCount} tools registered. Click a name for its parameters.`"></p>
+        <div class="bg-white border rounded-xl divide-y">
+          <template x-for="(group, cat) in toolsByCategory" :key="cat">
+            <div class="p-4">
+              <div class="text-xs uppercase tracking-wider text-zinc-500 mb-2" x-text="cat + ' (' + group.length + ')'"></div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                <template x-for="t in group" :key="t.name">
+                  <div class="text-xs flex items-baseline gap-2 py-0.5">
+                    <code class="text-zinc-900 font-semibold" x-text="t.name"></code>
+                    <span class="text-zinc-500 truncate" x-text="t.description.split('.')[0]"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Privacy -->
+      <div class="bg-white border rounded-xl p-5">
+        <h2 class="text-lg font-semibold mb-2">Privacy &amp; safety</h2>
+        <ul class="text-sm text-zinc-600 leading-relaxed list-disc list-inside space-y-1">
+          <li>Server binds to <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">127.0.0.1</code> only — not reachable from the network.</li>
+          <li>API keys and OAuth tokens are encrypted with Fernet; the symmetric key lives at <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">~/.automate/secret.key</code> (chmod 600).</li>
+          <li>The LLM call goes directly from autoMate to the provider you chose. Nothing else sees it.</li>
+          <li><strong class="text-amber-700">Heads-up:</strong> <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">shell.exec</code> and <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">script.run</code> run with the autoMate process's full privileges. Treat it like any other automation tool — only run prompts you'd run yourself.</li>
+        </ul>
+      </div>
+
     </section>
 
   </main>

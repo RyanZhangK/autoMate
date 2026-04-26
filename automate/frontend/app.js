@@ -5,10 +5,12 @@ document.addEventListener("alpine:init", () => {
       { id: "models",       label: "Models" },
       { id: "integrations", label: "Tools" },
       { id: "history",      label: "History" },
+      { id: "help",         label: "Help" },
     ],
     active: "chat",
     region: "",
     status: null,
+    welcomeOpen: false,
     catalog: [],
     catalogById: {},
     providers: [],
@@ -37,10 +39,35 @@ document.addEventListener("alpine:init", () => {
       "Take a screenshot of my desktop",
     ],
 
+    helpExamples: [
+      { kind: "shell",        text: "git status this folder and summarise what changed",
+        note: "Uses shell.exec — runs from the folder where automate started." },
+      { kind: "browser",      text: "Open https://news.ycombinator.com and list the top 5 story titles",
+        note: "Uses browser.* (Playwright). Install Chromium first: python -m playwright install chromium" },
+      { kind: "real browser", text: "Read the visible text on my active tab and summarise it",
+        note: "Uses bx.* — needs the autoMate Bridge browser extension installed." },
+      { kind: "github",       text: "List the 5 most recent issues in microsoft/playwright",
+        note: "Uses the GitHub integration — connect it in the Tools tab first." },
+      { kind: "script",       text: "Write a Python script that prints prime numbers up to 100 and run it",
+        note: "Uses script.run — saves the file under ~/.automate/scripts/ for replay." },
+    ],
+
     async init() {
       await this.refreshAll();
       this.connectWS();
       setInterval(() => this.refreshStatus(), 5000);
+      // First-run welcome: auto-open if the user hasn't dismissed it yet AND
+      // no provider has an API key configured.
+      const dismissed = localStorage.getItem("automate-welcomed") === "1";
+      if (!dismissed && this.status && this.status.providers_configured === 0) {
+        this.welcomeOpen = true;
+      }
+    },
+
+    dismissWelcome(jumpToModels) {
+      localStorage.setItem("automate-welcomed", "1");
+      this.welcomeOpen = false;
+      if (jumpToModels) this.active = "models";
     },
 
     async refreshAll() {
@@ -86,6 +113,10 @@ document.addEventListener("alpine:init", () => {
     get toolsByCategory() {
       // tools is grouped { category: [...] } already
       return this.tools || {};
+    },
+
+    get totalToolCount() {
+      return Object.values(this.tools || {}).reduce((acc, arr) => acc + arr.length, 0);
     },
 
     // ---- providers ----
