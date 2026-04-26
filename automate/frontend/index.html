@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>autoMate · scheduling hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="bg-zinc-50 text-zinc-900 antialiased min-h-screen" x-data="app" x-init="init()">
+
+  <!-- Top bar -->
+  <header class="border-b bg-white sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded-lg bg-zinc-900 text-white grid place-items-center font-bold text-sm">a</div>
+        <div>
+          <div class="font-semibold text-sm">autoMate</div>
+          <div class="text-[11px] text-zinc-500" x-text="status?.version ? `v${status.version}` : ''"></div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-1 text-sm">
+        <template x-for="t in tabs" :key="t.id">
+          <button @click="active = t.id"
+                  :class="active === t.id ? 'bg-zinc-900 text-white' : 'hover:bg-zinc-100'"
+                  class="px-3 py-1.5 rounded-md transition" x-text="t.label"></button>
+        </template>
+      </nav>
+      <div class="text-xs text-zinc-500 flex items-center gap-3">
+        <span x-show="status?.active_provider">
+          <span class="text-zinc-400">model:</span>
+          <span class="font-medium text-zinc-700" x-text="`${status.active_provider} / ${status.active_model || 'default'}`"></span>
+        </span>
+        <span x-show="!status?.active_provider" class="text-amber-600">⚠ no model selected</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-8">
+
+    <!-- ============ MODELS ============ -->
+    <section x-show="active === 'models'">
+      <div class="flex items-end justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-semibold">Models</h1>
+          <p class="text-sm text-zinc-500 mt-1">Configure any LLM provider. autoMate uses one as the brain — others can be swapped any time.</p>
+        </div>
+        <select class="border rounded-md text-sm px-2 py-1.5" x-model="region">
+          <option value="">All regions</option>
+          <option value="global">Global</option>
+          <option value="china">China</option>
+          <option value="self-hosted">Self-hosted</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <template x-for="p in filteredProviders" :key="p.id">
+          <div class="bg-white border rounded-xl p-4 flex flex-col gap-3 hover:border-zinc-300 transition">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="font-medium" x-text="p.display_name"></div>
+                <div class="text-xs text-zinc-500" x-text="p.id"></div>
+              </div>
+              <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600" x-text="p.region"></span>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span x-show="p.api_key_set" class="text-emerald-600">● configured</span>
+              <span x-show="!p.api_key_set" class="text-zinc-400">○ no key</span>
+              <span x-show="status?.active_provider === p.id" class="text-blue-600">● active</span>
+            </div>
+            <div class="flex gap-2 mt-auto">
+              <button @click="openProvider(p)" class="flex-1 text-xs border rounded-md px-2 py-1.5 hover:bg-zinc-50">Configure</button>
+              <button x-show="p.api_key_set" @click="setActive(p.id)"
+                      class="text-xs border rounded-md px-2 py-1.5 hover:bg-zinc-50">Use this</button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Provider modal -->
+      <div x-show="editingProvider" x-transition.opacity class="fixed inset-0 bg-black/30 grid place-items-center z-20" @click.self="editingProvider = null">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6" x-show="editingProvider">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold" x-text="editingProvider?.display_name"></h2>
+            <button @click="editingProvider = null" class="text-zinc-400 hover:text-zinc-700">×</button>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div>
+              <label class="block text-xs text-zinc-500 mb-1">API Key</label>
+              <input type="password" x-model="editForm.api_key"
+                     :placeholder="editingProvider?.api_key_set ? '•••••• (leave blank to keep)' : 'paste key'"
+                     class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
+              <a x-show="catalogById[editingProvider?.id]?.api_key_url" class="text-xs text-blue-600 underline"
+                 :href="catalogById[editingProvider?.id]?.api_key_url" target="_blank">Get an API key →</a>
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-500 mb-1">Base URL <span class="text-zinc-400">(override only if needed)</span></label>
+              <input x-model="editForm.base_url" class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-500 mb-1">Default model</label>
+              <input x-model="editForm.default_model" list="model-suggestions" class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
+              <datalist id="model-suggestions">
+                <template x-for="m in catalogById[editingProvider?.id]?.models || []" :key="m">
+                  <option :value="m"></option>
+                </template>
+              </datalist>
+            </div>
+            <p x-show="catalogById[editingProvider?.id]?.notes" class="text-xs text-amber-700 bg-amber-50 rounded-md p-2"
+               x-text="catalogById[editingProvider?.id]?.notes"></p>
+          </div>
+          <div class="flex justify-between mt-5">
+            <button @click="testProvider(editingProvider.id)" class="text-xs border rounded-md px-3 py-1.5 hover:bg-zinc-50">Test</button>
+            <div class="flex gap-2">
+              <button @click="saveProvider()" class="text-xs bg-zinc-900 text-white rounded-md px-3 py-1.5">Save</button>
+            </div>
+          </div>
+          <p x-show="testResult" class="text-xs mt-3 p-2 rounded-md" :class="testResult?.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'"
+             x-text="testResult?.message"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INTEGRATIONS ============ -->
+    <section x-show="active === 'integrations'">
+      <h1 class="text-2xl font-semibold">Tool Marketplace</h1>
+      <p class="text-sm text-zinc-500 mt-1 mb-6">Click "Connect" to grant autoMate access to your accounts. OAuth where supported, API key everywhere else.</p>
+
+      <template x-for="(group, cat) in groupedIntegrations" :key="cat">
+        <div class="mb-8">
+          <h2 class="text-xs uppercase tracking-wider text-zinc-500 mb-3" x-text="cat"></h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <template x-for="i in group" :key="i.id">
+              <div class="bg-white border rounded-xl p-3 flex items-center gap-3">
+                <div class="w-9 h-9 grid place-items-center bg-zinc-100 rounded-lg text-sm font-semibold text-zinc-700"
+                     x-text="i.display_name.charAt(0).toUpperCase()"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-sm truncate" x-text="i.display_name"></div>
+                  <div class="text-xs text-zinc-500 flex items-center gap-1.5">
+                    <span x-show="i.status === 'connected'" class="text-emerald-600">● connected</span>
+                    <span x-show="i.status !== 'connected'" class="text-zinc-400" x-text="i.auth"></span>
+                  </div>
+                </div>
+                <button @click="openIntegration(i)" class="text-xs border rounded-md px-2 py-1 hover:bg-zinc-50"
+                        x-text="i.status === 'connected' ? 'Manage' : 'Connect'"></button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- Integration modal -->
+      <div x-show="editingIntegration" x-transition.opacity class="fixed inset-0 bg-black/30 grid place-items-center z-20" @click.self="editingIntegration = null">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold" x-text="editingIntegration?.display_name"></h2>
+            <button @click="editingIntegration = null" class="text-zinc-400 hover:text-zinc-700">×</button>
+          </div>
+
+          <!-- API key flow -->
+          <div x-show="editingIntegration?.auth === 'apikey'" class="space-y-3 text-sm">
+            <p class="text-xs text-zinc-500">Paste an API key / token / webhook URL. autoMate encrypts it on disk.</p>
+            <input type="password" x-model="integrationForm.token" placeholder="key, token, or webhook URL"
+                   class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
+            <button @click="connectApiKey()" class="text-xs bg-zinc-900 text-white rounded-md px-3 py-1.5">Save</button>
+          </div>
+
+          <!-- OAuth flow -->
+          <div x-show="editingIntegration?.auth === 'oauth'" class="space-y-3 text-sm">
+            <p class="text-xs text-zinc-500">
+              autoMate runs locally so you'll need to register a small OAuth app once. Then click "Authorize" — your browser handles the rest.
+            </p>
+            <div class="bg-zinc-50 border rounded-md p-3 space-y-2">
+              <input x-model="integrationForm.client_id" placeholder="client_id"
+                     class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
+              <input type="password" x-model="integrationForm.client_secret" placeholder="client_secret (encrypted at rest)"
+                     class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
+              <div class="flex justify-between items-center">
+                <a class="text-xs text-blue-600 underline" target="_blank"
+                   :href="`https://github.com/yuruotong1/autoMate/blob/master/docs/oauth/${editingIntegration?.id}.md`">
+                  How to register the OAuth app →
+                </a>
+                <button @click="saveOAuthApp()" class="text-xs border rounded-md px-2 py-1 hover:bg-white">Save credentials</button>
+              </div>
+            </div>
+            <button @click="beginOAuth()" class="w-full text-xs bg-zinc-900 text-white rounded-md px-3 py-2">
+              Authorize via <span x-text="editingIntegration?.display_name"></span>
+            </button>
+          </div>
+
+          <div class="border-t mt-4 pt-3 flex justify-end" x-show="editingIntegration?.status === 'connected'">
+            <button @click="disconnect()" class="text-xs text-red-600 hover:underline">Disconnect</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CHAT ============ -->
+    <section x-show="active === 'chat'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 bg-white border rounded-xl flex flex-col h-[70vh]">
+        <div class="px-4 py-3 border-b flex items-center justify-between">
+          <div>
+            <div class="font-medium text-sm">Agent</div>
+            <div class="text-xs text-zinc-500">Natural-language → tool calls. Live stream over WebSocket.</div>
+          </div>
+          <button @click="messages = []" class="text-xs text-zinc-500 hover:text-zinc-900">Clear</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" x-ref="chatScroll">
+          <template x-for="(m, i) in messages" :key="i">
+            <div :class="m.role === 'user' ? 'ml-auto bg-zinc-900 text-white' : 'bg-zinc-100'"
+                 class="max-w-[80%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap" x-text="m.text"></div>
+          </template>
+          <template x-for="(ev, i) in liveEvents" :key="i">
+            <div class="text-xs text-zinc-500 border-l-2 border-zinc-300 pl-3 py-1">
+              <span class="font-mono uppercase" x-text="ev.kind"></span>
+              <span x-show="ev.payload?.name" x-text="' · ' + ev.payload.name"></span>
+              <pre x-show="ev.payload?.args || ev.payload?.result" class="mt-1 text-[11px] bg-zinc-50 p-2 rounded"
+                   x-text="JSON.stringify(ev.payload?.args || ev.payload?.result, null, 2).slice(0, 400)"></pre>
+            </div>
+          </template>
+        </div>
+        <form @submit.prevent="send()" class="border-t p-3 flex gap-2">
+          <input x-model="input" :disabled="busy" placeholder="Ask autoMate to do something…"
+                 class="flex-1 border rounded-md px-3 py-2 text-sm" />
+          <button :disabled="busy || !input" type="submit"
+                  class="bg-zinc-900 text-white px-4 py-2 rounded-md text-sm disabled:opacity-40">
+            <span x-show="!busy">Send</span><span x-show="busy">…</span>
+          </button>
+        </form>
+      </div>
+
+      <aside class="space-y-4">
+        <div class="bg-white border rounded-xl p-4">
+          <div class="text-xs uppercase tracking-wider text-zinc-500 mb-2">Quick prompts</div>
+          <div class="space-y-2">
+            <template x-for="q in quickPrompts" :key="q">
+              <button @click="input = q; send()"
+                      class="w-full text-left text-xs bg-zinc-50 hover:bg-zinc-100 border rounded-md px-2 py-1.5"
+                      x-text="q"></button>
+            </template>
+          </div>
+        </div>
+        <div class="bg-white border rounded-xl p-4">
+          <div class="text-xs uppercase tracking-wider text-zinc-500 mb-2">Available tools</div>
+          <div class="text-xs space-y-1 max-h-64 overflow-y-auto">
+            <template x-for="(group, cat) in toolsByCategory" :key="cat">
+              <div>
+                <div class="font-semibold text-zinc-600 mt-2" x-text="cat + ' (' + group.length + ')'"></div>
+                <template x-for="t in group" :key="t.name">
+                  <div class="text-zinc-500 truncate" x-text="t.name" :title="t.description"></div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section x-show="active === 'history'">
+      <h1 class="text-2xl font-semibold">Run history</h1>
+      <p class="text-sm text-zinc-500 mt-1 mb-6">Every prompt → tool-call trace is logged locally.</p>
+      <div class="bg-white border rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-50 text-xs text-zinc-500">
+            <tr><th class="text-left p-3">When</th><th class="text-left p-3">Source</th><th class="text-left p-3">Prompt</th><th class="text-left p-3">Status</th></tr>
+          </thead>
+          <tbody>
+            <template x-for="r in runs" :key="r.id">
+              <tr class="border-t">
+                <td class="p-3 text-xs text-zinc-500" x-text="new Date(r.started_at * 1000).toLocaleString()"></td>
+                <td class="p-3 text-xs"><span class="px-1.5 py-0.5 rounded bg-zinc-100" x-text="r.source"></span></td>
+                <td class="p-3 truncate max-w-md" x-text="r.prompt"></td>
+                <td class="p-3 text-xs" :class="{'text-emerald-600': r.status === 'done', 'text-red-600': r.status === 'error'}" x-text="r.status"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div x-show="!runs.length" class="p-6 text-center text-sm text-zinc-400">No runs yet.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

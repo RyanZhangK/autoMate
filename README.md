@@ -1,291 +1,197 @@
-<div align="center"><a name="readme-top"></a>
+# autoMate
 
-<img src="./imgs/logo.png" width="120" height="120" alt="autoMate logo">
-<h1>autoMate</h1>
-<p><b>🤖 API Tool Center + Desktop Automation — One MCP, 31 Platforms</b></p>
+> A scheduling hub that gives any LLM hands.
 
-[中文](./README_CN.md) | [日本語](./README_JA.md)
+autoMate is a small local server with a browser UI. After install you open
+`http://127.0.0.1:8765`, plug in an API key for whichever LLM you like, and
+connect the SaaS accounts you want it to act on. From that point on, anything
+that speaks **HTTP** or **MCP** — Claude Code, Cursor, Cline, Kimi K2, your own
+script — can hand autoMate a natural-language request, and autoMate plans,
+picks tools, fills in parameters, and executes against your machine, browsers
+and 30+ third-party APIs.
 
-[![PyPI](https://img.shields.io/pypi/v/automate-mcp)](https://pypi.org/project/automate-mcp/)
-[![License](https://img.shields.io/github/license/yuruotong1/autoMate)](LICENSE)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Browser UI  ·  http://127.0.0.1:8765                       │
+│  models · tool marketplace · live chat · run history        │
+└────────────────┬────────────────────────────────────────────┘
+                 │  HTTP · WebSocket
+┌────────────────▼────────────────────────────────────────────┐
+│  Unified entry point                                         │
+│  ┌──────────────┬───────────────────────────────────────┐   │
+│  │  REST API    │  POST /api/agent/run                  │   │
+│  │  WebSocket   │  /api/sessions/ws  (live event stream)│   │
+│  │  MCP (stdio) │  `automate mcp`  (Claude Code, Cursor)│   │
+│  └──────────────┴───────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│  Agent loop                                                  │
+│  · parse NL request  · choose tools  · extract args  · loop │
+├─────────────────────────────────────────────────────────────┤
+│  Tools                                                       │
+│  ┌────────────────┬───────────────────┬──────────────────┐  │
+│  │ Local hands    │ Browser           │ Integrations     │  │
+│  │ shell.exec     │ browser.open      │ github.*         │  │
+│  │ script.run     │ browser.click     │ notion.*         │  │
+│  │ desktop.click  │ browser.extract   │ slack.* feishu.* │  │
+│  │ desktop.type   │ browser.screenshot│ stripe.* …       │  │
+│  └────────────────┴───────────────────┴──────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  ~/.automate/  · SQLite + Fernet-encrypted credentials       │
+└─────────────────────────────────────────────────────────────┘
+```
 
-> The only MCP server that combines 31 platform integrations + desktop GUI automation — local-first, zero cloud dependency, your credentials never leave your machine
+中文文档:[README_CN.md](./README_CN.md)
 
-</div>
+## Why
 
----
+You already have a favourite coding assistant. It's good at planning. What it
+can't do is reach into _your_ Notion, _your_ GitHub, _your_ shell, _your_
+running browser session. autoMate is the executor that fills that gap. It
+lives on your machine, holds your credentials locally, and exposes a single
+clean surface that any upstream LLM can call.
 
-## 💡 What is autoMate?
+- **Bring your own brain.** 25+ LLM providers in the catalog (OpenAI, Anthropic,
+  Gemini, Kimi, Qwen, DeepSeek, Doubao, GLM, Yi, MiniMax, Hunyuan, Baichuan,
+  StepFun, Mistral, Grok, OpenRouter, Groq, Together, Fireworks, Ollama,
+  LM Studio, vLLM, …). Pick one, swap any time.
+- **Click-through OAuth.** GitHub, Notion, Slack, Linear, 飞书, 钉钉. No env
+  vars to copy-paste. Other integrations use API keys, also one-click and
+  encrypted at rest.
+- **Local hands, real privileges.** `shell.exec` runs anything the autoMate
+  process can run. `script.run` writes Python/Bash/Node and executes. `browser.*`
+  drives a real Chromium tab via Playwright. `desktop.*` is pyautogui under
+  the hood.
+- **One process, three doorways.** REST, WebSocket, MCP — same registry, same
+  agent. No second deployment.
 
-autoMate is an MCP server that works in **two modes**:
+## Install
 
-**Mode 1 — API Tool Center:** Set environment variables for the platforms you use — autoMate auto-registers native tools for each one. Send messages, create issues, manage tasks, process payments, search contacts — all from one MCP.
+```bash
+pip install 'automate-hub[full]'
+# or, for a minimal install (no MCP/browser/desktop):
+pip install automate-hub
+```
 
-**Mode 2 — Desktop GUI Automation:** Give Claude hands and eyes to control any desktop application with no API — 剪映, Photoshop, AutoCAD, SAP, internal tools.
+Optional extras:
 
-| Mode | Requires | What it does |
-|------|---------|-------------|
-| **API Tool Center** | Platform env vars (set only what you need) | Native tools for 31 platforms |
-| **Desktop Automation** | Nothing (zero-config) | Click, type, screenshot any desktop app |
-| **Cloud Vision** | HuggingFace token | Autonomous UI parsing + action reasoning |
+| extra      | what it adds                                                              |
+| ---------- | ------------------------------------------------------------------------- |
+| `mcp`      | stdio MCP server entry (`automate mcp`) for Claude Code / Cursor / Cline. |
+| `browser`  | Playwright. Run `python -m playwright install chromium` after install.    |
+| `desktop`  | pyautogui. Skip on headless servers.                                      |
+| `full`     | All of the above.                                                         |
 
----
+## Run
 
-## ✨ Why autoMate?
+```bash
+automate serve
+```
 
-| | autoMate | Composio | Zapier MCP | Claude Connectors |
-|---|---|---|---|---|
-| **Setup** | Set an env var | Create account + OAuth | Web login + URL copy | claude.ai login |
-| **Chinese platforms** | 8 (unique) | None | None | None |
-| **GUI automation** | Yes | No | No | No |
-| **Local / private** | Yes — runs on your machine | No — cloud only | No — cloud only | No — Anthropic cloud |
-| **Open source** | Yes | Closed-source tools | Closed | Closed |
-| **Cost** | Free | Free tier + paid | 2 tasks per call | Pro/Enterprise plan |
+That's it. The browser opens to `http://127.0.0.1:8765`. The first thing it
+asks is which LLM provider to use — paste a key, hit "Use this", you're done.
 
-**autoMate's unique position:** The only MCP server that is simultaneously local-first, Chinese-platform-native, open-source, and combines API integrations with desktop GUI automation.
+```bash
+automate doctor    # show paths, configured providers, integrations
+automate mcp       # start a stdio MCP server (for upstream LLM clients)
+```
 
----
+Data lives under `~/.automate/`. Credentials are encrypted with a key at
+`~/.automate/secret.key` (chmod 600). Override with `AUTOMATE_HOME=/path`.
 
-## 🔌 Setup
+## Use it
 
-> **Prerequisite:** `pip install uv`
+### From the browser
 
-### Claude Desktop
+Open the chat tab, type `git status this repo and summarise what changed`. The
+event stream shows the model picking `shell.exec`, the result coming back, and
+the final summary. Every run is logged to the History tab.
 
-Open **Settings → Developer → Edit Config**, then add:
+### From Claude Code / Cursor / Cline / Kimi (MCP)
+
+Add this to your client's MCP config:
 
 ```json
 {
   "mcpServers": {
-    "automate": {
-      "command": "uvx",
-      "args": ["automate-mcp@latest"]
-    }
+    "automate": { "command": "automate", "args": ["mcp"] }
   }
 }
 ```
 
-Restart Claude Desktop — done. `@latest` keeps autoMate up to date automatically.
+Now the upstream LLM sees one top-level `automate(prompt)` tool plus every
+individual tool — `shell.exec`, `browser.open`, `notion_search`, etc. Use the
+prompt-shaped tool when you want autoMate to figure out the steps. Use the
+specific tools when the upstream model already has a plan. **They plan, we
+execute** — that's the whole division of labour.
 
-### With API integrations
+### From any HTTP client
 
-Add env vars for whichever platforms you use:
+```bash
+# Natural-language request — autoMate plans + executes.
+curl -X POST http://127.0.0.1:8765/api/agent/run \
+  -H 'content-type: application/json' \
+  -d '{"prompt": "create a GitHub issue in foo/bar titled smoke test"}'
 
-```json
-{
-  "mcpServers": {
-    "automate": {
-      "command": "uvx",
-      "args": ["automate-mcp@latest"],
-      "env": {
-        "SLACK_BOT_TOKEN": "xoxb-...",
-        "GITHUB_TOKEN": "ghp_...",
-        "NOTION_API_KEY": "secret_...",
-        "STRIPE_SECRET_KEY": "sk_live_...",
-        "FEISHU_APP_ID": "cli_...",
-        "FEISHU_APP_SECRET": "...",
-        "SENTRY_AUTH_TOKEN": "...",
-        "SENTRY_ORG_SLUG": "my-org"
-      }
-    }
-  }
-}
+# Or call a single tool directly when you already know what you want.
+curl -X POST http://127.0.0.1:8765/api/execute/shell.exec \
+  -H 'content-type: application/json' \
+  -d '{"args": {"command": "git status"}}'
 ```
 
-Only set the ones you need — unused integrations are silently skipped, zero overhead.
+Live progress streams over `ws://127.0.0.1:8765/api/sessions/ws` — send
+`{"prompt": "..."}` and receive event objects (`thinking`, `tool_call`,
+`tool_result`, `final`).
 
-### Cursor / Windsurf / Cline
+## What's in the box
 
-Settings → MCP Servers → Add:
+**LLM providers (25)** — OpenAI · Anthropic · Google Gemini · xAI Grok ·
+Mistral · Cohere · OpenRouter · Groq · Together · Fireworks · DeepInfra ·
+DeepSeek · Moonshot Kimi · 通义千问 · 字节豆包 · 智谱 GLM · 百川 · 01.AI Yi ·
+MiniMax · 阶跃星辰 · 腾讯混元 · 硅基流动 · Ollama · LM Studio · any
+OpenAI-compatible endpoint.
 
-```json
-{
-  "automate": {
-    "command": "uvx",
-    "args": ["automate-mcp@latest"]
-  }
-}
+**SaaS integrations (31)** — GitHub · GitLab · Gitee · Notion · Slack · Linear ·
+Jira · Confluence · Trello · Asana · Monday.com · HubSpot · Airtable · Stripe ·
+Shopify · Telegram · Discord · Microsoft Teams · Zoom · Twitter/X · SendGrid ·
+Mailchimp · Twilio · Sentry · 飞书 · 钉钉 · 企业微信 · 微信公众号 · 微博 ·
+语雀 · 高德地图.
+
+**Local executors** — `shell.exec`, `shell.cwd`, `script.run`, `script.list`,
+`script.read`, `desktop.screenshot`, `desktop.click`, `desktop.type`,
+`desktop.press`, `desktop.size`, `browser.open`, `browser.click`,
+`browser.type`, `browser.extract`, `browser.screenshot`, `browser.close`.
+
+## Adding a new tool
+
+```python
+# automate/tools/myfeature.py
+from .registry import Tool, ToolRegistry
+
+def register(reg: ToolRegistry) -> None:
+    reg.register(Tool(
+        name="myfeature.do",
+        description="Do the thing.",
+        parameters={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
+        handler=lambda x: {"echoed": x},
+        category="custom",
+    ))
 ```
 
----
+Then call `register(reg)` from `automate/tools/registry.py::build_default_registry`.
 
-## 🔗 API Tool Center — 31 Supported Platforms
+## Adding a new LLM provider
 
-### Chinese Platforms
+Append a `ProviderSpec` to `automate/providers/catalog.py`. If the provider
+speaks the OpenAI chat-completions schema (most do, including all Chinese
+ones), nothing else is needed. The UI picks it up on next reload.
 
-| Platform | Env Vars | Tools |
-|----------|----------|-------|
-| 飞书 (Feishu/Lark) | `FEISHU_APP_ID`, `FEISHU_APP_SECRET` | Send messages, create docs, list chats, create tasks |
-| 钉钉 (DingTalk) | `DINGTALK_WEBHOOK`, `DINGTALK_SECRET` | Send text, markdown, link cards via webhook |
-| 企业微信 (WeCom) | `WECOM_CORP_ID`, `WECOM_CORP_SECRET`, `WECOM_AGENT_ID` | Send text/markdown, get department users |
-| 微信公众号 (WeChat MP) | `WEIXIN_APP_ID`, `WEIXIN_APP_SECRET` | Send template messages, get followers |
-| 微博 (Weibo) | `WEIBO_ACCESS_TOKEN` | Post weibo, get timeline, get profile |
-| Gitee (码云) | `GITEE_ACCESS_TOKEN` | Create/list issues, create PRs, get repo info |
-| 语雀 (Yuque) | `YUQUE_TOKEN` | List knowledge bases, list/get/create docs |
-| 高德地图 (Amap) | `AMAP_API_KEY` | Geocode, reverse geocode, POI search, driving routes |
+## Status
 
-### Messaging & Collaboration
+v1.0 — server, agent loop, MCP bridge, all integrations adapted, OAuth
+implemented for GitHub / Notion / Slack / Linear / 飞书 / 钉钉, click-through
+flow for the rest. Browser execution via Playwright. Tested against Python
+3.10–3.12.
 
-| Platform | Env Vars | Tools |
-|----------|----------|-------|
-| Slack | `SLACK_BOT_TOKEN` | Send messages, list channels, get history, reply threads |
-| Telegram | `TELEGRAM_BOT_TOKEN` | Send messages/photos, get updates, get bot info |
-| Discord | `DISCORD_BOT_TOKEN` | Send messages, get messages, list channels, send DMs |
-| Microsoft Teams | `TEAMS_WEBHOOK_URL` | Send messages, rich cards, color-coded alerts |
-| Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | Create meetings, list meetings, get meeting details |
-| Twitter/X | `TWITTER_BEARER_TOKEN` | Search tweets, get user info, get user tweets |
-| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | Send SMS, list messages, get account info |
+## License
 
-### DevOps & Engineering
-
-| Platform | Env Vars | Tools |
-|----------|----------|-------|
-| GitHub | `GITHUB_TOKEN` | Create/list issues, create PRs, search repos, get repo info |
-| GitLab | `GITLAB_TOKEN`, `GITLAB_BASE_URL` | Create/list issues, create MRs, list pipelines |
-| Sentry | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG_SLUG` | List/get issues, list projects, resolve issues |
-
-### Project Management & Knowledge
-
-| Platform | Env Vars | Tools |
-|----------|----------|-------|
-| Notion | `NOTION_API_KEY` | Search, create pages, query databases, append blocks |
-| Airtable | `AIRTABLE_API_KEY` | List/create/update/search records |
-| Linear | `LINEAR_API_KEY` | Create/list issues, list teams, update issues |
-| Jira | `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL` | Create/search/get issues, transition status |
-| Confluence | `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`, `CONFLUENCE_BASE_URL` | Search/get/create pages, list spaces |
-| Trello | `TRELLO_API_KEY`, `TRELLO_TOKEN` | List boards/lists/cards, create cards |
-| Asana | `ASANA_ACCESS_TOKEN` | List workspaces/projects/tasks, create/update tasks |
-| Monday.com | `MONDAY_API_KEY` | List boards/items, create items, list groups |
-| HubSpot | `HUBSPOT_ACCESS_TOKEN` | Create/search contacts, create/list deals |
-
-### Payments & E-commerce
-
-| Platform | Env Vars | Tools |
-|----------|----------|-------|
-| Stripe | `STRIPE_SECRET_KEY` | Get balance, list/create customers, list payments/subscriptions |
-| Shopify | `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ACCESS_TOKEN` | List products/orders/customers, get shop info |
-
-### Email & Marketing
-
-| Platform | Env Vars | Tools |
-|----------|----------|-------|
-| SendGrid | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | Send emails, bulk send, get delivery stats |
-| Mailchimp | `MAILCHIMP_API_KEY` | List audiences, add subscribers, list campaigns |
-
----
-
-## 🖥️ Desktop Automation Tools
-
-**Script library** — save once, run forever:
-
-| Tool | Description |
-|------|-------------|
-| `list_scripts` | Show all saved automation scripts |
-| `run_script` | Run a saved script by name |
-| `save_script` | Save the current workflow as a reusable script |
-| `show_script` | View a script's contents |
-| `delete_script` | Delete a script |
-| `install_script` | Install a script from a URL or the community library |
-
-**Cloud Vision** — autonomous UI understanding (requires HF config):
-
-| Tool | Description |
-|------|-------------|
-| `cloud_vision_config` | Show current cloud vision configuration status |
-| `warm_endpoints` | Wake up scaled-to-zero HF endpoints before use |
-| `parse_screen` | Detect all UI elements via cloud OmniParser |
-| `reason_action` | Ask a VLM what GUI action to take next |
-| `smart_act` | Full autonomous loop: parse → reason → execute → repeat |
-
-**Low-level desktop control:**
-
-| Tool | Description |
-|------|-------------|
-| `screenshot` | Capture the screen and return as base64 PNG |
-| `click` | Click at screen coordinates |
-| `double_click` | Double-click at screen coordinates |
-| `type_text` | Type text (full Unicode / CJK support) |
-| `press_key` | Press a key or combo (e.g. `ctrl+c`, `win`) |
-| `scroll` | Scroll up or down |
-| `mouse_move` | Move cursor without clicking |
-| `drag` | Drag from one position to another |
-
----
-
-## ☁️ Cloud Vision (Optional)
-
-Add HuggingFace env vars to enable autonomous screen parsing and action reasoning:
-
-```json
-"env": {
-  "AUTOMATE_HF_TOKEN": "hf_...",
-  "AUTOMATE_SCREEN_PARSER_URL": "https://your-omniparser-endpoint.aws.endpoints.huggingface.cloud",
-  "AUTOMATE_ACTION_MODEL_URL": "https://your-uitars-endpoint.aws.endpoints.huggingface.cloud",
-  "AUTOMATE_ACTION_MODEL_NAME": "ByteDance-Seed/UI-TARS-1.5-7B",
-  "AUTOMATE_HF_NAMESPACE": "your-hf-username",
-  "AUTOMATE_SCREEN_PARSER_ENDPOINT": "omniparser-v2",
-  "AUTOMATE_ACTION_MODEL_ENDPOINT": "ui-tars-1-5-7b"
-}
-```
-
-See `.env.example` for the full reference.
-
----
-
-## 📚 Script Library
-
-Scripts are saved as `.md` files in `~/.automate/scripts/` — human-readable, git-friendly, shareable.
-
-```markdown
----
-name: jianying_export_douyin
-description: Export the current 剪映 project as a 9:16 Douyin video
-created: 2025-01-01
----
-
-## Steps
-
-1. Open export dialog [key:ctrl+e]
-2. Select resolution 1080×1920 [click:coord=320,480]
-3. Set format to MP4 [click:coord=320,560]
-4. Click export [click:coord=800,650]
-5. Wait for export to finish [wait:5]
-```
-
-| Hint | Action |
-|------|--------|
-| `[click:coord=320,240]` | Click at absolute screen coordinates |
-| `[type:hello]` | Type text |
-| `[key:ctrl+s]` | Press keyboard shortcut |
-| `[wait:2]` | Wait 2 seconds |
-| `[scroll_up]` / `[scroll_down]` | Scroll the page |
-
----
-
-## 📝 FAQ
-
-**Q: Which integrations are active?**  
-Only integrations whose env vars are all set. Unset ones are silently skipped — no errors, no overhead.
-
-**Q: How is this different from Composio or Zapier MCP?**  
-Composio and Zapier route your API calls through their cloud servers and require account creation. autoMate runs entirely on your machine — your credentials stay local. autoMate also covers Chinese platforms (Feishu, DingTalk, WeChat, etc.) that no cloud-hosted MCP service supports, and bundles desktop GUI automation for apps with no API.
-
-**Q: Do I need a GPU for Cloud Vision?**  
-No — everything runs on HuggingFace Inference Endpoints. You only need a HF token and deployed endpoints.
-
-**Q: Does it work on macOS / Linux?**  
-Yes — all three platforms are supported.
-
----
-
-## 🤝 Contributing
-
-<a href="https://github.com/yuruotong1/autoMate/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=yuruotong1/autoMate" />
-</a>
-
----
-
-<div align="center">
-⭐ Every star encourages the creators and helps more people discover autoMate ⭐
-</div>
+MIT. See `LICENSE`.

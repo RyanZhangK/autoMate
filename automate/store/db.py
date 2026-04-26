@@ -1,0 +1,230 @@
+"""SQLite storage with a tiny migration layer.
+
+Tables:
+- ``providers``    LLM provider configs (api_key encrypted)
+- ``connections``  Tool/integration credentials (token encrypted, supports OAuth)
+- ``settings``     Misc key/value (active provider, default model, ...)
+- ``runs``         Agent run history (prompt → plan → tool calls → result)
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+import time
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, Iterable
+
+from ..settings import PATHS
+from .crypto import Vault
+
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS providers (
+  id            TEXT PRIMARY KEY,
+  display_name  TEXT NOT NULL,
+  base_url      TEXT,
+  api_key_enc   TEXT,
+  default_model TEXT,
+  enabled       INTEGER NOT NULL DEFAULT 1,
+  extra_json    TEXT NOT NULL DEFAULT '{}',
+  updated_at    REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS connections (
+  id            TEXT PRIMARY KEY,         -- e.g. 'github', 'notion'
+  display_name  TEXT NOT NULL,
+  auth_kind     TEXT NOT NULL,            -- 'oauth' | 'apikey' | 'none'
+  status        TEXT NOT NULL DEFAULT 'disconnected',
+  token_enc     TEXT,
+  refresh_enc   TEXT,
+  expires_at    REAL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  updated_at    REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runs (
+  id          TEXT PRIMARY KEY,
+  source      TEXT NOT NULL,              -- 'web' | 'mcp' | 'http' | 'cli'
+  prompt      TEXT NOT NULL,
+  status      TEXT NOT NULL,              -- 'running' | 'done' | 'error'
+  trace_json  TEXT NOT NULL DEFAULT '[]',
+  result      TEXT,
+  started_at  REAL NOT NULL,
+  ended_at    REAL
+);
+"""
+
+
+class Database:
+    def __init__(self, path: Path | None = None, vault: Vault | None = None):
+        self.path = path or PATHS.db
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(str(self.path), check_same_thread=False, isolation_level=None)
+        self._conn.row_factory = sqlite3.Row
+        self._conn.execute("PRAGMA journal_mode=WAL;")
+        self._conn.execute("PRAGMA foreign_keys=ON;")
+        self._conn.executescript(_SCHEMA)
+        self.vault = vault or Vault(PATHS.secret_key)
+
+    # ---------- generic helpers ----------
+
+    @contextmanager
+    def cursor(self):
+        cur = self._conn.cursor()
+        try:
+            yield cur
+        finally:
+            cur.close()
+
+    def fetchone(self, sql: str, params: Iterable[Any] = ()) -> dict | None:
+        with self.cursor() as cur:
+            cur.execute(sql, tuple(params))
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+    def fetchall(self, sql: str, params: Iterable[Any] = ()) -> list[dict]:
+        with self.cursor() as cur:
+            cur.execute(sql, tuple(params))
+            return [dict(r) for r in cur.fetchall()]
+
+    def execute(self, sql: str, params: Iterable[Any] = ()) -> None:
+        with self.cursor() as cur:
+            cur.execute(sql, tuple(params))
+
+    # ---------- providers ----------
+
+    def upsert_provider(self, *, id: str, display_name: str, base_url: str | None,
+                        api_key: str | None, default_model: str | None,
+                        enabled: bool = True, extra: dict | None = None) -> dict:
+        api_key_enc = self.vault.encrypt(api_key) if api_key else ""
+        self.execute(
+            """INSERT INTO providers (id, display_name, base_url, api_key_enc, default_model, enabled, extra_json, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET
+                 display_name=excluded.display_name,
+                 base_url=excluded.base_url,
+                 api_key_enc=CASE WHEN excluded.api_key_enc='' THEN providers.api_key_enc ELSE excluded.api_key_enc END,
+                 default_model=excluded.default_model,
+                 enabled=excluded.enabled,
+                 extra_json=excluded.extra_json,
+                 updated_at=excluded.updated_at""",
+            (id, display_name, base_url or "", api_key_enc, default_model or "",
+             1 if enabled else 0, json.dumps(extra or {}), time.time()),
+        )
+        return self.get_provider(id)  # type: ignore[return-value]
+
+    def get_provider(self, id: str, *, decrypt: bool = False) -> dict | None:
+        row = self.fetchone("SELECT * FROM providers WHERE id = ?", (id,))
+        if row and decrypt:
+            row["api_key"] = self.vault.decrypt(row.pop("api_key_enc"))
+        elif row:
+            row["api_key_set"] = bool(row.pop("api_key_enc"))
+        return row
+
+    def list_providers(self) -> list[dict]:
+        rows = self.fetchall("SELECT * FROM providers ORDER BY display_name")
+        for r in rows:
+            r["api_key_set"] = bool(r.pop("api_key_enc"))
+        return rows
+
+    def delete_provider(self, id: str) -> None:
+        self.execute("DELETE FROM providers WHERE id = ?", (id,))
+
+    # ---------- connections (tool integrations) ----------
+
+    def upsert_connection(self, *, id: str, display_name: str, auth_kind: str,
+                          status: str, token: str | None = None,
+                          refresh: str | None = None, expires_at: float | None = None,
+                          metadata: dict | None = None) -> dict:
+        token_enc = self.vault.encrypt(token) if token else ""
+        refresh_enc = self.vault.encrypt(refresh) if refresh else ""
+        self.execute(
+            """INSERT INTO connections (id, display_name, auth_kind, status, token_enc, refresh_enc, expires_at, metadata_json, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET
+                 display_name=excluded.display_name,
+                 auth_kind=excluded.auth_kind,
+                 status=excluded.status,
+                 token_enc=CASE WHEN excluded.token_enc='' THEN connections.token_enc ELSE excluded.token_enc END,
+                 refresh_enc=CASE WHEN excluded.refresh_enc='' THEN connections.refresh_enc ELSE excluded.refresh_enc END,
+                 expires_at=excluded.expires_at,
+                 metadata_json=excluded.metadata_json,
+                 updated_at=excluded.updated_at""",
+            (id, display_name, auth_kind, status, token_enc, refresh_enc,
+             expires_at, json.dumps(metadata or {}), time.time()),
+        )
+        return self.get_connection(id)  # type: ignore[return-value]
+
+    def get_connection(self, id: str, *, decrypt: bool = False) -> dict | None:
+        row = self.fetchone("SELECT * FROM connections WHERE id = ?", (id,))
+        if not row:
+            return None
+        if decrypt:
+            row["token"] = self.vault.decrypt(row.pop("token_enc"))
+            row["refresh"] = self.vault.decrypt(row.pop("refresh_enc"))
+        else:
+            row["token_set"] = bool(row.pop("token_enc"))
+            row.pop("refresh_enc", None)
+        return row
+
+    def list_connections(self) -> list[dict]:
+        rows = self.fetchall("SELECT * FROM connections ORDER BY display_name")
+        for r in rows:
+            r["token_set"] = bool(r.pop("token_enc"))
+            r.pop("refresh_enc", None)
+        return rows
+
+    def delete_connection(self, id: str) -> None:
+        self.execute("DELETE FROM connections WHERE id = ?", (id,))
+
+    # ---------- settings (kv) ----------
+
+    def get_setting(self, key: str, default: str | None = None) -> str | None:
+        row = self.fetchone("SELECT value FROM settings WHERE key = ?", (key,))
+        return row["value"] if row else default
+
+    def set_setting(self, key: str, value: str) -> None:
+        self.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
+
+    # ---------- runs ----------
+
+    def create_run(self, *, id: str, source: str, prompt: str) -> None:
+        self.execute(
+            "INSERT INTO runs (id, source, prompt, status, started_at) VALUES (?, ?, ?, 'running', ?)",
+            (id, source, prompt, time.time()),
+        )
+
+    def append_trace(self, id: str, event: dict) -> None:
+        row = self.fetchone("SELECT trace_json FROM runs WHERE id = ?", (id,))
+        trace = json.loads(row["trace_json"]) if row else []
+        trace.append(event)
+        self.execute("UPDATE runs SET trace_json = ? WHERE id = ?", (json.dumps(trace), id))
+
+    def finish_run(self, id: str, *, status: str, result: str | None) -> None:
+        self.execute(
+            "UPDATE runs SET status = ?, result = ?, ended_at = ? WHERE id = ?",
+            (status, result, time.time(), id),
+        )
+
+    def list_runs(self, limit: int = 50) -> list[dict]:
+        return self.fetchall("SELECT id, source, prompt, status, started_at, ended_at FROM runs ORDER BY started_at DESC LIMIT ?", (limit,))
+
+
+_db: Database | None = None
+
+
+def get_db() -> Database:
+    global _db
+    if _db is None:
+        PATHS.ensure()
+        _db = Database()
+    return _db

@@ -1,292 +1,192 @@
-<div align="center"><a name="readme-top"></a>
+# autoMate
 
-<img src="./imgs/logo.png" width="120" height="120" alt="autoMate logo">
-<h1>autoMate</h1>
-<p><b>🤖 API 工具中心 + 桌面自动化 — 一个 MCP，接入 31 个平台</b></p>
+> 给任何大模型一双手的调度中枢。
 
-[English](./README.md) | [日本語](./README_JA.md)
+autoMate 是一个本地小服务,自带浏览器界面。安装完打开 `http://127.0.0.1:8765`,
+配上你喜欢的大模型 API Key,授权要让它操作的 SaaS 账号 — 从此任何能说 **HTTP**
+或 **MCP** 的客户端(Claude Code、Cursor、Cline、Kimi K2、你自己的脚本)都
+可以把一段自然语言交给 autoMate,由它去**规划、选工具、抽参数、跑命令**,
+落地到你的机器、浏览器和 30+ 第三方 API 上。
 
-[![PyPI](https://img.shields.io/pypi/v/automate-mcp)](https://pypi.org/project/automate-mcp/)
-[![License](https://img.shields.io/github/license/yuruotong1/autoMate)](LICENSE)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  浏览器 UI · http://127.0.0.1:8765                          │
+│  模型配置 · 工具市场 · 实时对话 · 历史记录                  │
+└────────────────┬────────────────────────────────────────────┘
+                 │  HTTP · WebSocket
+┌────────────────▼────────────────────────────────────────────┐
+│  统一接入层                                                   │
+│  ┌──────────────┬───────────────────────────────────────┐   │
+│  │  REST API    │  POST /api/agent/run                  │   │
+│  │  WebSocket   │  /api/sessions/ws  (执行流实时推送)   │   │
+│  │  MCP (stdio) │  `automate mcp`  Claude Code / Cursor │   │
+│  └──────────────┴───────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│  Agent 内核                                                  │
+│  · 解析自然语言 · 选工具 · 抽参数 · 反馈循环               │
+├─────────────────────────────────────────────────────────────┤
+│  工具                                                         │
+│  ┌────────────────┬───────────────────┬──────────────────┐  │
+│  │ 本地手脚       │ 浏览器            │ 集成市场         │  │
+│  │ shell.exec     │ browser.open      │ github.*         │  │
+│  │ script.run     │ browser.click     │ notion.*         │  │
+│  │ desktop.click  │ browser.extract   │ slack.* 飞书.*   │  │
+│  │ desktop.type   │ browser.screenshot│ stripe.* ...     │  │
+│  └────────────────┴───────────────────┴──────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  ~/.automate/  · SQLite + Fernet 加密凭据                    │
+└─────────────────────────────────────────────────────────────┘
+```
 
-> 唯一同时具备 31 个平台集成 + 桌面 GUI 自动化的 MCP Server — 本地运行，零云端依赖，API Key 不离开你的机器
+English: [README.md](./README.md)
 
-</div>
+## 为什么需要 autoMate
 
-> **特别声明：** autoMate 项目仍处于快速迭代阶段。更深入的设计思考与 AI+RPA 研究笔记，会在 [知识星球「AI桐木和他的贵人们」](https://t.zsxq.com/x1cCW) 中分享。
+你已经有趁手的 AI 编码助手了。它擅长**规划**,但伸不进**你的** Notion、
+**你的** GitHub、**你的** Shell、**你的**浏览器会话 — autoMate 就是来填这块
+空缺的执行器。它跑在你自己的机器上,凭据从不离开本地,对外只暴露一个干净的
+统一接口,任何大模型客户端都能直接调用。
 
-<div align="center">
-<a href="https://t.zsxq.com/x1cCW" target="_blank" rel="noopener noreferrer">
-  <img src="./imgs/knowledge.png" width="150" height="150" alt="知识星球二维码">
-</a>
-</div>
+- **大脑自带。** 内置 25+ 模型供应商目录:OpenAI、Anthropic、Gemini、Kimi、
+  通义千问、DeepSeek、豆包、智谱 GLM、Yi、MiniMax、混元、百川、阶跃星辰、
+  Mistral、Grok、OpenRouter、Groq、Together、Fireworks、Ollama、LM Studio、
+  vLLM……随时换。
+- **一键 OAuth。** GitHub、Notion、Slack、Linear、飞书、钉钉 都是点一下跳转
+  授权,不用手抄环境变量。其他集成走 API Key,也是一键保存,加密落盘。
+- **本地真权限。** `shell.exec` 用 autoMate 进程的权限直接跑命令;`script.run`
+  能写 Python / Bash / Node 落盘后执行;`browser.*` 用 Playwright 驱动一个真
+  Chromium;`desktop.*` 接 pyautogui。
+- **一进程三入口。** REST + WebSocket + MCP 共用同一个工具注册表 + 同一个
+  Agent。一份代码,三种姿势调。
 
----
+## 安装
 
-## 💡 autoMate 是什么？
+```bash
+pip install 'automate-hub[full]'
+# 或最小安装(不带 MCP / 浏览器 / 桌面控制):
+pip install automate-hub
+```
 
-autoMate 是一个 MCP Server，提供**两种核心能力**：
+可选 extras:
 
-**模式一 — API 工具中心：** 设置对应平台的环境变量，autoMate 自动注册该平台的原生工具。发消息、创建 Issue、管理任务、处理支付、查询联系人——全部通过同一个 MCP 完成。
+| extra      | 添加什么                                                            |
+| ---------- | ----------------------------------------------------------------- |
+| `mcp`      | stdio MCP 入口(`automate mcp`),给 Claude Code / Cursor / Cline 挂载。 |
+| `browser`  | Playwright。装完跑一次 `python -m playwright install chromium`。     |
+| `desktop`  | pyautogui。无显示器服务器跳过即可。                                   |
+| `full`     | 上面全装。                                                           |
 
-**模式二 — 桌面 GUI 自动化：** 让 Claude 拥有双手和眼睛，操控任何没有 API 的桌面软件——剪映、Photoshop、AutoCAD、SAP、企业内部系统。
+## 启动
 
-| 模式 | 需要什么 | 做什么 |
-|------|---------|--------|
-| **API 工具中心** | 各平台环境变量（按需配置） | 31 个平台的原生工具 |
-| **桌面自动化** | 无需任何配置 | 点击、输入、截图，控制任何桌面软件 |
-| **云端视觉** | HuggingFace Token | 自主界面解析 + 动作推理 |
+```bash
+automate serve
+```
 
----
+完事 — 浏览器自动打开 `http://127.0.0.1:8765`。第一步选一个 LLM 供应商,
+粘贴 API Key,点 "Use this",就能开始用。
 
-## ✨ 为什么选择 autoMate？
+```bash
+automate doctor    # 查看运行状态、已配模型、已连集成
+automate mcp       # 以 stdio MCP 服务的形式跑(给上游 LLM 客户端挂载)
+```
 
-| | autoMate | Composio | Zapier MCP | Claude Connectors |
-|---|---|---|---|---|
-| **配置方式** | 设置环境变量即可 | 注册账号 + OAuth | 网页登录 + 复制链接 | claude.ai 登录 |
-| **国内平台** | 8 个（独家） | 无 | 无 | 无 |
-| **桌面自动化** | 有 | 无 | 无 | 无 |
-| **本地运行** | 是 — 运行在你的机器上 | 否 — 仅云端 | 否 — 仅云端 | 否 — Anthropic 云 |
-| **开源** | 是 | 工具闭源 | 闭源 | 闭源 |
-| **费用** | 免费 | 免费层 + 付费 | 每次调用 2 个 task | Pro/企业版 |
+数据全在 `~/.automate/`。凭据用 `~/.automate/secret.key`(0600)做对称加密。
+想换路径就 `AUTOMATE_HOME=/path`。
 
-**autoMate 的独特定位：** 市场上唯一同时做到本地优先、国内平台原生支持、开源、并将 API 集成与桌面 GUI 自动化合二为一的 MCP Server。
+## 使用
 
----
+### 浏览器里
 
-## 🔌 接入方式
+打开 Chat 标签页,输入 `给当前仓库跑 git status 并总结改动`。事件流会展示
+模型挑选 `shell.exec` → 工具结果回填 → 最终总结。所有 run 都落到 History。
 
-> **前提：** `pip install uv`
+### 从 Claude Code / Cursor / Cline / Kimi 调(MCP)
 
-### Claude Desktop
-
-打开 **Settings → Developer → Edit Config**，添加：
+在客户端 MCP 配置里加:
 
 ```json
 {
   "mcpServers": {
-    "automate": {
-      "command": "uvx",
-      "args": ["automate-mcp@latest"]
-    }
+    "automate": { "command": "automate", "args": ["mcp"] }
   }
 }
 ```
 
-重启 Claude Desktop 即可。`@latest` 会在每次重启时自动更新到最新版本。
+上游模型就会看到一个顶层的 `automate(prompt)` 工具,以及每一个具体工具
+(`shell.exec`、`browser.open`、`notion_search` ……)。
 
-### 带 API 集成的配置
+- 想让 autoMate **自己规划**,调 `automate(prompt="...")`。
+- 上游模型已经规划好步骤了,直接调具体工具,autoMate 只负责执行。
 
-在 `env` 中添加你需要的平台环境变量：
+这就是和 Claude Code / Kimi 的分工:**它们做规划,我们做执行**。
 
-```json
-{
-  "mcpServers": {
-    "automate": {
-      "command": "uvx",
-      "args": ["automate-mcp@latest"],
-      "env": {
-        "FEISHU_APP_ID": "cli_...",
-        "FEISHU_APP_SECRET": "...",
-        "DINGTALK_WEBHOOK": "https://oapi.dingtalk.com/robot/send?access_token=...",
-        "SLACK_BOT_TOKEN": "xoxb-...",
-        "GITHUB_TOKEN": "ghp_...",
-        "STRIPE_SECRET_KEY": "sk_live_...",
-        "AMAP_API_KEY": "..."
-      }
-    }
-  }
-}
+### 从任意 HTTP 客户端
+
+```bash
+# 自然语言请求 — autoMate 自己规划并执行。
+curl -X POST http://127.0.0.1:8765/api/agent/run \
+  -H 'content-type: application/json' \
+  -d '{"prompt": "在 foo/bar 仓库新建一个标题为「冒烟测试」的 issue"}'
+
+# 已经知道要调哪个工具,直接来。
+curl -X POST http://127.0.0.1:8765/api/execute/shell.exec \
+  -H 'content-type: application/json' \
+  -d '{"args": {"command": "git status"}}'
 ```
 
-只需配置你用到的平台——未配置的集成会被静默跳过，不产生任何开销。
+执行流走 WebSocket:`ws://127.0.0.1:8765/api/sessions/ws`,发 `{"prompt": "..."}`,
+收到的是 `thinking` / `tool_call` / `tool_result` / `final` 这几种事件对象。
 
-### Cursor / Windsurf / Cline
+## 已支持的能力
 
-设置 → MCP Servers → 添加：
+**LLM 供应商(25 家)** — OpenAI · Anthropic · Google Gemini · xAI Grok ·
+Mistral · Cohere · OpenRouter · Groq · Together · Fireworks · DeepInfra ·
+DeepSeek · 月之暗面 Kimi · 通义千问 · 字节豆包 · 智谱 GLM · 百川 · 01.AI Yi ·
+MiniMax · 阶跃星辰 · 腾讯混元 · 硅基流动 · Ollama · LM Studio · 任意
+OpenAI 兼容端点。
 
-```json
-{
-  "automate": {
-    "command": "uvx",
-    "args": ["automate-mcp@latest"]
-  }
-}
+**SaaS 集成(31 家)** — GitHub · GitLab · Gitee · Notion · Slack · Linear ·
+Jira · Confluence · Trello · Asana · Monday.com · HubSpot · Airtable · Stripe ·
+Shopify · Telegram · Discord · Microsoft Teams · Zoom · Twitter/X · SendGrid ·
+Mailchimp · Twilio · Sentry · 飞书 · 钉钉 · 企业微信 · 微信公众号 · 微博 ·
+语雀 · 高德地图。
+
+**本地执行器** — `shell.exec` · `shell.cwd` · `script.run` · `script.list` ·
+`script.read` · `desktop.screenshot` · `desktop.click` · `desktop.type` ·
+`desktop.press` · `desktop.size` · `browser.open` · `browser.click` ·
+`browser.type` · `browser.extract` · `browser.screenshot` · `browser.close`。
+
+## 加新工具
+
+```python
+# automate/tools/myfeature.py
+from .registry import Tool, ToolRegistry
+
+def register(reg: ToolRegistry) -> None:
+    reg.register(Tool(
+        name="myfeature.do",
+        description="做那件事。",
+        parameters={"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"]},
+        handler=lambda x: {"echoed": x},
+        category="custom",
+    ))
 ```
 
----
+然后在 `automate/tools/registry.py` 的 `build_default_registry` 里调一下
+`register(reg)` 即可。
 
-## 🔗 API 工具中心 — 31 个已支持平台
+## 加新 LLM 供应商
 
-### 国内平台
+在 `automate/providers/catalog.py` 追加一个 `ProviderSpec`。如果它兼容 OpenAI
+chat-completions 协议(国内厂商基本都兼容),其他什么都不用改 — UI 重载就能
+看到它。
 
-| 平台 | 环境变量 | 工具能力 |
-|------|---------|---------|
-| 飞书 (Feishu/Lark) | `FEISHU_APP_ID`, `FEISHU_APP_SECRET` | 发消息、创建文档、查聊天列表、创建任务 |
-| 钉钉 (DingTalk) | `DINGTALK_WEBHOOK`, `DINGTALK_SECRET` | 发文本、Markdown、链接卡片（Webhook 机器人） |
-| 企业微信 (WeCom) | `WECOM_CORP_ID`, `WECOM_CORP_SECRET`, `WECOM_AGENT_ID` | 发文本/Markdown、查部门成员 |
-| 微信公众号 | `WEIXIN_APP_ID`, `WEIXIN_APP_SECRET` | 发模板消息、获取关注者、查用户信息 |
-| 微博 | `WEIBO_ACCESS_TOKEN` | 发微博、看时间线、查个人资料 |
-| Gitee (码云) | `GITEE_ACCESS_TOKEN` | 创建/查询 Issue、创建 PR、查仓库信息 |
-| 语雀 (Yuque) | `YUQUE_TOKEN` | 查知识库、查/获取/创建文档 |
-| 高德地图 (Amap) | `AMAP_API_KEY` | 地理编码、逆地理编码、POI 搜索、驾车路线 |
+## 状态
 
-### 消息与协作
+v1.0 — 服务、Agent 循环、MCP bridge、31 个集成全部接入,GitHub / Notion /
+Slack / Linear / 飞书 / 钉钉 OAuth 已实现,其他点一下跳转。浏览器自动化用
+Playwright。Python 3.10–3.12 实测通过。
 
-| 平台 | 环境变量 | 工具能力 |
-|------|---------|---------|
-| Slack | `SLACK_BOT_TOKEN` | 发消息、查频道、获取历史、回复 Thread |
-| Telegram | `TELEGRAM_BOT_TOKEN` | 发文字/图片、获取更新、查 Bot 信息 |
-| Discord | `DISCORD_BOT_TOKEN` | 发消息、查消息、查频道列表、发私信 |
-| Microsoft Teams | `TEAMS_WEBHOOK_URL` | 发消息、富文本卡片、彩色告警通知 |
-| Zoom | `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | 创建会议、查会议列表、获取会议详情 |
-| Twitter/X | `TWITTER_BEARER_TOKEN` | 搜索推文、查用户信息、获取用户推文 |
-| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | 发短信、查消息记录、查账户信息 |
+## License
 
-### DevOps 与工程
-
-| 平台 | 环境变量 | 工具能力 |
-|------|---------|---------|
-| GitHub | `GITHUB_TOKEN` | 创建/查询 Issue、创建 PR、搜索仓库、查仓库信息 |
-| GitLab | `GITLAB_TOKEN`, `GITLAB_BASE_URL` | 创建/查询 Issue、创建 MR、查 Pipeline |
-| Sentry | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG_SLUG` | 查/获取错误、查项目列表、标记已解决 |
-
-### 项目管理与知识库
-
-| 平台 | 环境变量 | 工具能力 |
-|------|---------|---------|
-| Notion | `NOTION_API_KEY` | 搜索、创建页面、查询数据库、追加块 |
-| Airtable | `AIRTABLE_API_KEY` | 查/创建/更新/搜索记录 |
-| Linear | `LINEAR_API_KEY` | 创建/查询 Issue、查团队列表、更新 Issue |
-| Jira | `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_BASE_URL` | 创建/搜索/查询 Issue、流转状态 |
-| Confluence | `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`, `CONFLUENCE_BASE_URL` | 搜索/获取/创建页面、查 Space 列表 |
-| Trello | `TRELLO_API_KEY`, `TRELLO_TOKEN` | 查看看板/列表/卡片、创建卡片 |
-| Asana | `ASANA_ACCESS_TOKEN` | 查工作区/项目/任务、创建/更新任务 |
-| Monday.com | `MONDAY_API_KEY` | 查看看板/条目、创建条目、查分组 |
-| HubSpot | `HUBSPOT_ACCESS_TOKEN` | 创建/搜索联系人、创建/查询商机 |
-
-### 支付与电商
-
-| 平台 | 环境变量 | 工具能力 |
-|------|---------|---------|
-| Stripe | `STRIPE_SECRET_KEY` | 查余额、查/创建客户、查支付记录/订阅 |
-| Shopify | `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ACCESS_TOKEN` | 查产品/订单/客户、获取店铺信息 |
-
-### 邮件与营销
-
-| 平台 | 环境变量 | 工具能力 |
-|------|---------|---------|
-| SendGrid | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | 发邮件、批量发送、查看投递统计 |
-| Mailchimp | `MAILCHIMP_API_KEY` | 查受众列表、添加订阅者、查看邮件活动 |
-
----
-
-## 🖥️ 桌面自动化工具
-
-**脚本库** — 保存一次，永久复用：
-
-| 工具 | 说明 |
-|------|------|
-| `list_scripts` | 查看所有已保存的自动化脚本 |
-| `run_script` | 按名称执行已保存的脚本 |
-| `save_script` | 将当前工作流保存为可复用脚本 |
-| `show_script` | 查看脚本内容 |
-| `delete_script` | 删除脚本 |
-| `install_script` | 从 URL 或社区动作库安装脚本 |
-
-**云端视觉** — 自主界面理解（需配置 HF 环境变量）：
-
-| 工具 | 说明 |
-|------|------|
-| `cloud_vision_config` | 查看云端视觉配置状态 |
-| `warm_endpoints` | 唤醒已缩容的 HF Endpoints |
-| `parse_screen` | 通过云端 OmniParser 检测 UI 元素 |
-| `reason_action` | 让视觉语言模型决定下一步操作 |
-| `smart_act` | 全自动循环：解析 → 推理 → 执行 → 重复 |
-
-**底层桌面控制：**
-
-| 工具 | 说明 |
-|------|------|
-| `screenshot` | 截取屏幕，返回 base64 PNG |
-| `click` | 点击屏幕坐标 |
-| `double_click` | 双击屏幕坐标 |
-| `type_text` | 输入文字（支持中文及全 Unicode） |
-| `press_key` | 按键或组合键（如 `ctrl+c`、`win`） |
-| `scroll` | 上下滚动 |
-| `mouse_move` | 移动鼠标（不点击） |
-| `drag` | 从一个位置拖拽到另一个位置 |
-
----
-
-## ☁️ 云端视觉（可选）
-
-在 MCP 配置中添加 HuggingFace 环境变量，启用自主界面解析和动作推理：
-
-```json
-"env": {
-  "AUTOMATE_HF_TOKEN": "hf_...",
-  "AUTOMATE_SCREEN_PARSER_URL": "https://your-omniparser-endpoint.aws.endpoints.huggingface.cloud",
-  "AUTOMATE_ACTION_MODEL_URL": "https://your-uitars-endpoint.aws.endpoints.huggingface.cloud",
-  "AUTOMATE_ACTION_MODEL_NAME": "ByteDance-Seed/UI-TARS-1.5-7B",
-  "AUTOMATE_HF_NAMESPACE": "your-hf-username",
-  "AUTOMATE_SCREEN_PARSER_ENDPOINT": "omniparser-v2",
-  "AUTOMATE_ACTION_MODEL_ENDPOINT": "ui-tars-1-5-7b"
-}
-```
-
-详细说明见仓库中的 `.env.example`。
-
----
-
-## 📚 脚本库
-
-脚本以 `.md` 文件保存在 `~/.automate/scripts/`，人类可读、Git 可管理、可分享。
-
-```markdown
----
-name: jianying_export_douyin
-description: 将当前剪映项目导出为抖音 9:16 竖版视频
-created: 2025-01-01
----
-
-## Steps
-
-1. 打开导出对话框 [key:ctrl+e]
-2. 选择分辨率 1080×1920 [click:coord=320,480]
-3. 设置格式为 MP4 [click:coord=320,560]
-4. 点击导出按钮 [click:coord=800,650]
-5. 等待导出完成 [wait:5]
-```
-
----
-
-## 📝 常见问题
-
-**Q：哪些集成是激活的？**  
-只有环境变量全部设置的集成才会激活。未配置的平台会被静默跳过，不会报错，也不会影响性能。
-
-**Q：和 Composio、Zapier MCP 有什么区别？**  
-Composio 和 Zapier MCP 将你的 API 调用路由到他们的云服务器，需要注册账号。autoMate 完全运行在你的机器上，API Key 不离开本地。此外，autoMate 覆盖了飞书、钉钉、微信、高德等国内平台，这是任何云端 MCP 服务都不支持的。更独特的是，autoMate 还内置了桌面 GUI 自动化，处理没有 API 的应用。
-
-**Q：云端视觉需要 GPU 吗？**  
-不需要——全部跑在 HuggingFace Inference Endpoints 上，只需要一个 HF Token。
-
-**Q：支持 macOS / Linux 吗？**  
-支持，三个平台均可运行。
-
----
-
-## 🤝 参与共建
-
-每一个优秀的开源项目都凝聚着集体的智慧。无论是修复 bug、贡献脚本，还是改进文档，欢迎参与。
-
-<a href="https://github.com/yuruotong1/autoMate/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=yuruotong1/autoMate" />
-</a>
-
----
-
-<div align="center">
-⭐ 每一个 Star 都是对创作者的鼓励，也是让更多人发现并受益于 autoMate 的机会 ⭐
-</div>
+MIT,见 `LICENSE`。
