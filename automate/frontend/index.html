@@ -157,54 +157,101 @@
         </template>
       </div>
 
-      <!-- Provider modal -->
-      <div x-show="editingProvider" x-transition.opacity class="fixed inset-0 bg-black/30 grid place-items-center z-20" @click.self="editingProvider = null">
+      <!-- Provider modal — minimal: paste key, click one button. -->
+      <div x-show="editingProvider" x-transition.opacity class="fixed inset-0 bg-black/30 grid place-items-center z-20" @click.self="closeProviderModal()">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6" x-show="editingProvider">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-1">
             <h2 class="text-lg font-semibold" x-text="editingProvider?.display_name"></h2>
-            <button @click="editingProvider = null" class="text-zinc-400 hover:text-zinc-700">×</button>
+            <button @click="closeProviderModal()" class="text-zinc-400 hover:text-zinc-700">×</button>
           </div>
+          <p class="text-xs text-zinc-500 mb-4">
+            Paste your API key. autoMate will pick a sensible default model
+            (you can change it later in Advanced).
+          </p>
+
+          <!-- Per-provider hint, shown prominently. -->
+          <p x-show="catalogById[editingProvider?.id]?.notes"
+             class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2 mb-3"
+             x-text="catalogById[editingProvider?.id]?.notes"></p>
+
           <div class="space-y-3 text-sm">
             <div>
               <label class="block text-xs text-zinc-500 mb-1">API Key</label>
               <input type="password" x-model="editForm.api_key"
-                     :placeholder="editingProvider?.api_key_set ? '•••••• (leave blank to keep)' : 'paste key'"
+                     :placeholder="editingProvider?.api_key_set ? '•••••• (leave blank to keep current)' : 'paste your key here'"
                      class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
-              <a x-show="catalogById[editingProvider?.id]?.api_key_url" class="text-xs text-blue-600 underline"
-                 :href="catalogById[editingProvider?.id]?.api_key_url" target="_blank">Get an API key →</a>
+              <a x-show="catalogById[editingProvider?.id]?.api_key_url"
+                 class="text-xs text-blue-600 underline mt-1 inline-block"
+                 :href="catalogById[editingProvider?.id]?.api_key_url" target="_blank">
+                Don't have one? Get an API key →
+              </a>
             </div>
+
+            <!-- Advanced (collapsed by default) -->
             <div>
-              <label class="block text-xs text-zinc-500 mb-1">Base URL <span class="text-zinc-400">(override only if needed)</span></label>
-              <input x-model="editForm.base_url" class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
+              <button @click="showAdvanced = !showAdvanced"
+                      class="text-xs text-zinc-500 hover:text-zinc-900 inline-flex items-center gap-1">
+                <span x-text="showAdvanced ? '▾' : '▸'"></span>
+                Advanced (base URL, model name)
+              </button>
+              <div x-show="showAdvanced" x-cloak class="mt-2 space-y-2 bg-zinc-50 rounded-md p-3">
+                <div>
+                  <label class="block text-xs text-zinc-500 mb-1">Base URL</label>
+                  <input x-model="editForm.base_url" class="w-full border rounded-md px-2 py-1 font-mono text-[11px]" />
+                </div>
+                <div>
+                  <label class="block text-xs text-zinc-500 mb-1">Model</label>
+                  <select x-model="editForm.default_model"
+                          x-show="(catalogById[editingProvider?.id]?.models || []).length > 0"
+                          class="w-full border rounded-md px-2 py-1 font-mono text-[11px] bg-white">
+                    <template x-for="m in catalogById[editingProvider?.id]?.models || []" :key="m">
+                      <option :value="m" x-text="m"></option>
+                    </template>
+                  </select>
+                  <input x-model="editForm.default_model"
+                         x-show="(catalogById[editingProvider?.id]?.models || []).length === 0"
+                         placeholder="model name (or endpoint id for some providers)"
+                         class="w-full border rounded-md px-2 py-1 font-mono text-[11px]" />
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="block text-xs text-zinc-500 mb-1">Default model</label>
-              <input x-model="editForm.default_model" list="model-suggestions" class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
-              <datalist id="model-suggestions">
-                <template x-for="m in catalogById[editingProvider?.id]?.models || []" :key="m">
-                  <option :value="m"></option>
-                </template>
-              </datalist>
-            </div>
-            <p x-show="catalogById[editingProvider?.id]?.notes" class="text-xs text-amber-700 bg-amber-50 rounded-md p-2"
-               x-text="catalogById[editingProvider?.id]?.notes"></p>
           </div>
-          <div class="flex justify-between mt-5">
-            <button @click="testProvider(editingProvider.id)" class="text-xs border rounded-md px-3 py-1.5 hover:bg-zinc-50">Test</button>
-            <div class="flex gap-2">
-              <button @click="saveProvider()" class="text-xs bg-zinc-900 text-white rounded-md px-3 py-1.5">Save</button>
-            </div>
+
+          <!-- Single primary action -->
+          <div class="mt-5">
+            <button @click="saveAndUse()"
+                    :disabled="saving"
+                    class="w-full bg-zinc-900 text-white rounded-md px-3 py-2.5 text-sm font-medium disabled:opacity-50">
+              <span x-show="!saving">Save and use this provider</span>
+              <span x-show="saving">Testing connection…</span>
+            </button>
           </div>
-          <p x-show="testResult" class="text-xs mt-3 p-2 rounded-md" :class="testResult?.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'"
-             x-text="testResult?.message"></p>
+
+          <!-- Inline result -->
+          <div x-show="testResult" class="mt-3 text-xs p-3 rounded-md whitespace-pre-wrap"
+               :class="testResult?.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'">
+            <div class="font-medium mb-1" x-text="testResult?.ok ? '✓ Connected' : '✕ Connection failed'"></div>
+            <div x-text="testResult?.message"></div>
+            <div x-show="!testResult?.ok && testResult?.hint" class="mt-2 text-[11px] text-red-700"
+                 x-text="testResult?.hint"></div>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- ============ INTEGRATIONS ============ -->
     <section x-show="active === 'integrations'">
-      <h1 class="text-2xl font-semibold">Tool Marketplace</h1>
-      <p class="text-sm text-zinc-500 mt-1 mb-6">Click "Connect" to grant autoMate access to your accounts. OAuth where supported, API key everywhere else.</p>
+      <div class="flex items-end justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-2xl font-semibold">Tool Marketplace</h1>
+          <p class="text-sm text-zinc-500 mt-1">
+            Click any platform → paste a token → done. autoMate encrypts it
+            on disk and surfaces that platform's tools to the agent.
+          </p>
+        </div>
+        <input x-model="integrationFilter" placeholder="Search…"
+               class="border rounded-md px-3 py-1.5 text-sm w-48" />
+      </div>
 
       <template x-for="(group, cat) in groupedIntegrations" :key="cat">
         <div class="mb-8">
@@ -229,43 +276,76 @@
         </div>
       </template>
 
-      <!-- Integration modal -->
-      <div x-show="editingIntegration" x-transition.opacity class="fixed inset-0 bg-black/30 grid place-items-center z-20" @click.self="editingIntegration = null">
+      <!-- Integration modal — paste once, save, done. OAuth hidden behind Advanced. -->
+      <div x-show="editingIntegration" x-transition.opacity class="fixed inset-0 bg-black/30 grid place-items-center z-20" @click.self="closeIntegrationModal()">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-1">
             <h2 class="text-lg font-semibold" x-text="editingIntegration?.display_name"></h2>
-            <button @click="editingIntegration = null" class="text-zinc-400 hover:text-zinc-700">×</button>
+            <button @click="closeIntegrationModal()" class="text-zinc-400 hover:text-zinc-700">×</button>
           </div>
 
-          <!-- API key flow -->
-          <div x-show="editingIntegration?.auth === 'apikey'" class="space-y-3 text-sm">
-            <p class="text-xs text-zinc-500">Paste an API key / token / webhook URL. autoMate encrypts it on disk.</p>
-            <input type="password" x-model="integrationForm.token" placeholder="key, token, or webhook URL"
-                   class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
-            <button @click="connectApiKey()" class="text-xs bg-zinc-900 text-white rounded-md px-3 py-1.5">Save</button>
+          <p class="text-xs text-zinc-500 mb-3">
+            <span x-text="(integrationHints[editingIntegration?.id]?.label || 'API key') + '.'"></span>
+            autoMate encrypts the value on disk.
+          </p>
+
+          <!-- Per-integration guide block -->
+          <div x-show="integrationHints[editingIntegration?.id]"
+               class="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3 text-xs text-blue-900">
+            <div class="font-medium mb-1" x-text="'How to get this:'"></div>
+            <div class="leading-relaxed" x-text="integrationHints[editingIntegration?.id]?.hint"></div>
+            <a x-show="integrationHints[editingIntegration?.id]?.url"
+               :href="integrationHints[editingIntegration?.id]?.url" target="_blank"
+               class="mt-2 inline-block underline text-blue-700">
+              Open the page →
+            </a>
           </div>
 
-          <!-- OAuth flow -->
-          <div x-show="editingIntegration?.auth === 'oauth'" class="space-y-3 text-sm">
-            <p class="text-xs text-zinc-500">
-              autoMate runs locally so you'll need to register a small OAuth app once. Then click "Authorize" — your browser handles the rest.
-            </p>
-            <div class="bg-zinc-50 border rounded-md p-3 space-y-2">
-              <input x-model="integrationForm.client_id" placeholder="client_id"
-                     class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
-              <input type="password" x-model="integrationForm.client_secret" placeholder="client_secret (encrypted at rest)"
-                     class="w-full border rounded-md px-2 py-1.5 font-mono text-xs" />
-              <div class="flex justify-between items-center">
-                <a class="text-xs text-blue-600 underline" target="_blank"
-                   :href="`https://github.com/yuruotong1/autoMate/blob/master/docs/oauth/${editingIntegration?.id}.md`">
-                  How to register the OAuth app →
-                </a>
-                <button @click="saveOAuthApp()" class="text-xs border rounded-md px-2 py-1 hover:bg-white">Save credentials</button>
-              </div>
-            </div>
-            <button @click="beginOAuth()" class="w-full text-xs bg-zinc-900 text-white rounded-md px-3 py-2">
-              Authorize via <span x-text="editingIntegration?.display_name"></span>
+          <!-- Token paste — single field -->
+          <input type="password" x-model="integrationForm.token"
+                 :placeholder="integrationHints[editingIntegration?.id]?.label || 'paste here'"
+                 class="w-full border rounded-md px-2 py-2 font-mono text-xs" />
+
+          <button @click="connectApiKey()" :disabled="connecting"
+                  class="w-full mt-3 bg-zinc-900 text-white rounded-md px-3 py-2.5 text-sm font-medium disabled:opacity-50">
+            <span x-show="!connecting">Save and connect</span>
+            <span x-show="connecting">Saving…</span>
+          </button>
+
+          <!-- OAuth flow tucked under Advanced for the providers that support it -->
+          <div x-show="editingIntegration?.auth === 'oauth'" class="mt-4">
+            <button @click="showOAuthAdvanced = !showOAuthAdvanced"
+                    class="text-xs text-zinc-500 hover:text-zinc-900 inline-flex items-center gap-1">
+              <span x-text="showOAuthAdvanced ? '▾' : '▸'"></span>
+              Use OAuth instead (advanced)
             </button>
+            <div x-show="showOAuthAdvanced" x-cloak class="mt-2 bg-zinc-50 border rounded-md p-3 space-y-2">
+              <p class="text-[11px] text-zinc-600 leading-relaxed">
+                Register an OAuth app first (your own — autoMate runs locally so
+                we can't share one). Paste the client_id/secret, then Authorize.
+              </p>
+              <input x-model="integrationForm.client_id" placeholder="client_id"
+                     class="w-full border rounded-md px-2 py-1 font-mono text-[11px]" />
+              <input type="password" x-model="integrationForm.client_secret"
+                     placeholder="client_secret"
+                     class="w-full border rounded-md px-2 py-1 font-mono text-[11px]" />
+              <div class="flex justify-between items-center">
+                <a class="text-[11px] text-blue-600 underline" target="_blank"
+                   :href="integrationHints[editingIntegration?.id]?.url">
+                  Where to register an OAuth app →
+                </a>
+                <button @click="saveOAuthApp()" class="text-[11px] border rounded-md px-2 py-1 hover:bg-white">Save app creds</button>
+              </div>
+              <button @click="beginOAuth()" class="w-full bg-blue-600 text-white rounded-md px-2 py-1.5 text-xs">
+                Authorize via <span x-text="editingIntegration?.display_name"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Inline result -->
+          <div x-show="connectResult" class="mt-3 text-xs p-3 rounded-md whitespace-pre-wrap"
+               :class="connectResult?.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'">
+            <span x-text="(connectResult?.ok ? '✓ ' : '✕ ') + connectResult?.message"></span>
           </div>
 
           <div class="border-t mt-4 pt-3 flex justify-end" x-show="editingIntegration?.status === 'connected'">
