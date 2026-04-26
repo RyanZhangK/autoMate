@@ -8,6 +8,11 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      # Push a branch named release-vX.Y.Z to trigger a release. The workflow
+      # creates the tag, builds, publishes, and deletes the branch on success.
+      # Useful when your tooling can push branches but not tags.
+      - "release-v*"
   workflow_dispatch:
     inputs:
       version:
@@ -32,19 +37,32 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            raw="${INPUT_VERSION#v}"
-            tag="v${raw}"
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            if ! git rev-parse "$tag" >/dev/null 2>&1; then
-              git tag "$tag"
-              git push origin "$tag"
-            fi
-          else
-            tag="${GITHUB_REF_NAME}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          case "$GITHUB_EVENT_NAME" in
+            workflow_dispatch)
+              raw="${INPUT_VERSION#v}"
+              tag="v${raw}"
+              ;;
+            push)
+              if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+                tag="${GITHUB_REF_NAME}"
+              elif [[ "$GITHUB_REF_NAME" == release-v* ]]; then
+                tag="${GITHUB_REF_NAME#release-}"
+              else
+                echo "unsupported ref: $GITHUB_REF" >&2; exit 1
+              fi
+              ;;
+            *) echo "unsupported event: $GITHUB_EVENT_NAME" >&2; exit 1 ;;
+          esac
+
+          if ! git rev-parse "$tag" >/dev/null 2>&1; then
+            git tag "$tag"
+            git push origin "$tag"
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "trigger_branch=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build · ${{ matrix.name }}
@@ -129,7 +147,10 @@ jobs:
     name: Publish Release
     needs: [resolve, build, extension, wheel]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { path: artifacts }
       - name: List artifacts
@@ -179,3 +200,8 @@ jobs:
             folder. The toolbar badge flips to **ON** when paired.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete trigger branch (if any)
+        if: startsWith(needs.resolve.outputs.trigger_branch, 'release-v')
+        run: |
+          git push origin --delete "${{ needs.resolve.outputs.trigger_branch }}" || true
