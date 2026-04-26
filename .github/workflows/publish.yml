@@ -1,19 +1,18 @@
 name: Publish to PyPI
 
-# Triggers:
-#   1. Push a tag like v0.2.0  →  auto-publishes to PyPI
-#   2. GitHub Release published →  same (backup trigger)
+# Manual-only — opt in to PyPI publish.
 #
-# Setup (one-time on PyPI):
-#   https://pypi.org/manage/account/publishing/
-#   Owner: yuruotong1 | Repo: autoMate | Workflow: publish.yml | Env: pypi
+# Why not auto-trigger on tag push?
+#   build.yml already publishes a GitHub Release on every tag. PyPI publish
+#   needs a one-time PyPI trusted-publisher setup
+#   (https://pypi.org/manage/account/publishing/). Until that's configured
+#   for `automate-hub`, auto-tag-publish would fail noisily.
+#
+# When ready:
+#   Actions → Publish to PyPI → Run workflow
 
 on:
-  push:
-    tags:
-      - "v*"
-  release:
-    types: [published]
+  workflow_dispatch:
 
 permissions:
   id-token: write   # required for OIDC trusted publisher

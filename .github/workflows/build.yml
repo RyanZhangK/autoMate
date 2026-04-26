@@ -1,48 +1,54 @@
 name: Build & Release
 
-# Manual trigger:
-#   Actions → Build & Release → Run workflow → version (e.g. 1.1.0)
-#
-# What it does:
-#   1. tag the commit (v1.1.0)
-#   2. build a self-contained binary on Windows / macOS / Linux in parallel
-#   3. zip the browser extension folder
-#   4. attach all artifacts to a GitHub Release
+# Triggers:
+#   1. Push a tag like v1.0.0  →  full Win/Mac/Linux build + GitHub Release
+#   2. Manual: Actions → Run workflow → version (creates the tag for you)
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: "version, e.g. 1.1.0 (no v prefix)"
+        description: "version, e.g. 1.0.0 (workflow creates the tag and runs)"
         required: true
 
 permissions:
   contents: write
 
 jobs:
-  tag:
-    name: Create tag
+  resolve:
+    name: Resolve tag
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.create.outputs.tag }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
-      - name: Create and push tag
-        id: create
-        uses: actions/github-script@v7
         with:
-          script: |
-            const raw = '${{ inputs.version }}'.trim();
-            const tag = raw.startsWith('v') ? raw : `v${raw}`;
-            await github.rest.git.createRef({
-              owner: context.repo.owner, repo: context.repo.repo,
-              ref: `refs/tags/${tag}`, sha: context.sha,
-            });
-            core.setOutput('tag', tag);
+          fetch-depth: 0
+      - id: tag
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            raw="${INPUT_VERSION#v}"
+            tag="v${raw}"
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            if ! git rev-parse "$tag" >/dev/null 2>&1; then
+              git tag "$tag"
+              git push origin "$tag"
+            fi
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build · ${{ matrix.name }}
-    needs: tag
+    needs: resolve
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -64,10 +70,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install autoMate (server + mcp + browser, skip desktop on CI)
+      - name: Install autoMate (server + mcp)
         run: |
           python -m pip install --upgrade pip
-          pip install -e '.[mcp,browser]'
+          pip install -e '.[mcp]'
           pip install pyinstaller>=6.0
 
       - name: Build with PyInstaller
@@ -92,7 +98,7 @@ jobs:
 
   extension:
     name: Pack browser extension
-    needs: tag
+    needs: resolve
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,34 +108,48 @@ jobs:
           name: autoMate-extension
           path: autoMate-extension.zip
 
+  wheel:
+    name: Build wheel + sdist
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install build
+          python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: autoMate-pypi
+          path: dist/*
+
   release:
     name: Publish Release
-    needs: [tag, build, extension]
+    needs: [resolve, build, extension, wheel]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with: { path: artifacts }
+      - name: List artifacts
+        run: find artifacts -type f -printf '%p  (%s bytes)\n'
       - uses: softprops/action-gh-release@v2
         with:
-          name: "autoMate ${{ needs.tag.outputs.tag }}"
-          tag_name: ${{ needs.tag.outputs.tag }}
+          name: "autoMate ${{ needs.resolve.outputs.tag }}"
+          tag_name: ${{ needs.resolve.outputs.tag }}
           files: |
             artifacts/autoMate-windows-x64/autoMate-windows-x64.zip
             artifacts/autoMate-macos-arm64/autoMate-macos-arm64.zip
             artifacts/autoMate-linux-x64/autoMate-linux-x64.tar.gz
             artifacts/autoMate-extension/autoMate-extension.zip
+            artifacts/autoMate-pypi/*.whl
+            artifacts/autoMate-pypi/*.tar.gz
           generate_release_notes: true
           body: |
             ## Install
 
-            **Pip (recommended)**
-
-            ```bash
-            pip install 'automate-hub[full]'
-            automate serve
-            ```
-
-            **Standalone binaries** — no Python required.
+            **Standalone binaries — no Python required**
 
             | OS | file |
             |----|------|
@@ -140,8 +160,22 @@ jobs:
             Unzip and run `./automate/automate serve`. The browser opens to
             `http://127.0.0.1:8765`.
 
-            **Browser extension** — `autoMate-extension.zip`. Unzip, then in
-            Chrome go to `chrome://extensions` → Developer mode → Load
-            unpacked → select the folder.
+            **pip**
+
+            ```bash
+            pip install 'automate-hub[full]'
+            automate serve
+            ```
+
+            **Docker**
+
+            ```bash
+            docker run --rm -p 8765:8765 -v automate-data:/data \
+              ghcr.io/yuruotong1/automate:latest
+            ```
+
+            **Browser extension** — `autoMate-extension.zip`. Unzip, then
+            `chrome://extensions` → Developer mode → Load unpacked → pick the
+            folder. The toolbar badge flips to **ON** when paired.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
