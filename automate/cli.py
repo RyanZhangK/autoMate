@@ -40,7 +40,13 @@ def _serve(args: argparse.Namespace) -> int:
                 pass
         threading.Thread(target=_open, daemon=True).start()
 
-    print(f"\n  autoMate v{__version__}  →  {url}\n  data dir: {PATHS.home}\n")
+    bar = "═" * 56
+    print(f"\n  ╔{bar}╗")
+    print(f"  ║   autoMate v{__version__}".ljust(60) + "║")
+    print(f"  ║   Open this in your browser: {url}".ljust(60) + "║")
+    print(f"  ║   Data dir: {PATHS.home}".ljust(60) + "║")
+    print(f"  ║   Press Ctrl+C to stop.".ljust(60) + "║")
+    print(f"  ╚{bar}╝\n")
     uvicorn.run(app, host=host, port=port, log_level="info")
     return 0
 
@@ -91,6 +97,13 @@ def main(argv: list[str] | None = None) -> int:
 
     p_doctor = sub.add_parser("doctor", help="print runtime status and config")
     p_doctor.set_defaults(func=_doctor)
+
+    if argv is None:
+        argv = sys.argv[1:]
+    # Double-clicking automate.exe lands here with no subcommand. Most users
+    # expect a UI to open, not a help screen — so default to `serve`.
+    if not argv:
+        argv = ["serve"]
 
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
