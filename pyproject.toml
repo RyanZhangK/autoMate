@@ -56,7 +56,7 @@ Repository = "https://github.com/yuruotong1/autoMate"
 Issues     = "https://github.com/yuruotong1/autoMate/issues"
 
 [tool.setuptools.packages.find]
-include = ["automate*", "integrations*"]
+include = ["automate*"]
 
 [tool.setuptools.package-data]
 "automate" = ["frontend/*", "frontend/**/*"]

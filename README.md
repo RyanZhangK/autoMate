@@ -7,37 +7,35 @@ autoMate is a small local server with a browser UI. After install you open
 connect the SaaS accounts you want it to act on. From that point on, anything
 that speaks **HTTP** or **MCP** — Claude Code, Cursor, Cline, Kimi K2, your own
 script — can hand autoMate a natural-language request, and autoMate plans,
-picks tools, fills in parameters, and executes against your machine, browsers
-and 30+ third-party APIs.
+picks tools, fills in parameters, and executes against your machine, your
+browser, and 30+ third-party APIs.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Browser UI  ·  http://127.0.0.1:8765                       │
-│  models · tool marketplace · live chat · run history        │
-└────────────────┬────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Browser UI  ·  http://127.0.0.1:8765                            │
+│  models · tool marketplace · live chat · run history             │
+└────────────────┬─────────────────────────────────────────────────┘
                  │  HTTP · WebSocket
-┌────────────────▼────────────────────────────────────────────┐
-│  Unified entry point                                         │
-│  ┌──────────────┬───────────────────────────────────────┐   │
-│  │  REST API    │  POST /api/agent/run                  │   │
-│  │  WebSocket   │  /api/sessions/ws  (live event stream)│   │
-│  │  MCP (stdio) │  `automate mcp`  (Claude Code, Cursor)│   │
-│  └──────────────┴───────────────────────────────────────┘   │
-├─────────────────────────────────────────────────────────────┤
-│  Agent loop                                                  │
-│  · parse NL request  · choose tools  · extract args  · loop │
-├─────────────────────────────────────────────────────────────┤
-│  Tools                                                       │
-│  ┌────────────────┬───────────────────┬──────────────────┐  │
-│  │ Local hands    │ Browser           │ Integrations     │  │
-│  │ shell.exec     │ browser.open      │ github.*         │  │
-│  │ script.run     │ browser.click     │ notion.*         │  │
-│  │ desktop.click  │ browser.extract   │ slack.* feishu.* │  │
-│  │ desktop.type   │ browser.screenshot│ stripe.* …       │  │
-│  └────────────────┴───────────────────┴──────────────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│  ~/.automate/  · SQLite + Fernet-encrypted credentials       │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────▼─────────────────────────────────────────────────┐
+│  Unified entry point                                              │
+│  ┌──────────────┬─────────────────────────────────────────────┐  │
+│  │  REST API    │  POST /api/agent/run                        │  │
+│  │  WebSocket   │  /api/sessions/ws  (live event stream)      │  │
+│  │  MCP (stdio) │  `automate mcp`  (Claude Code, Cursor)      │  │
+│  └──────────────┴─────────────────────────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────┤
+│  Agent loop                                                       │
+│  · parse NL  · pick tools  · fill args  · execute  · feed back   │
+├──────────────────────────────────────────────────────────────────┤
+│  Tools                                                            │
+│  ┌──────────┬───────────────┬──────────────────┬──────────────┐  │
+│  │ shell    │ browser       │ bx.* (your real  │ integrations │  │
+│  │ script   │ (Playwright,  │ browser via      │ github,      │  │
+│  │ desktop  │ fresh tab)    │ Chrome extension)│ notion, …    │  │
+│  └──────────┴───────────────┴──────────────────┴──────────────┘  │
+├──────────────────────────────────────────────────────────────────┤
+│  ~/.automate/  · SQLite + Fernet-encrypted credentials            │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 中文文档:[README_CN.md](./README_CN.md)
@@ -46,7 +44,7 @@ and 30+ third-party APIs.
 
 You already have a favourite coding assistant. It's good at planning. What it
 can't do is reach into _your_ Notion, _your_ GitHub, _your_ shell, _your_
-running browser session. autoMate is the executor that fills that gap. It
+already-logged-in browser. autoMate is the executor that fills that gap. It
 lives on your machine, holds your credentials locally, and exposes a single
 clean surface that any upstream LLM can call.
 
@@ -58,45 +56,65 @@ clean surface that any upstream LLM can call.
   vars to copy-paste. Other integrations use API keys, also one-click and
   encrypted at rest.
 - **Local hands, real privileges.** `shell.exec` runs anything the autoMate
-  process can run. `script.run` writes Python/Bash/Node and executes. `browser.*`
-  drives a real Chromium tab via Playwright. `desktop.*` is pyautogui under
-  the hood.
+  process can run. `script.run` writes Python/Bash/Node and executes.
+  `desktop.*` is pyautogui under the hood.
+- **Two flavours of browser control.** `browser.*` spawns a fresh Chromium
+  tab via Playwright (great for headless tasks). `bx.*` drives **your real
+  browser** via the autoMate Chrome extension — your tabs, your cookies, your
+  logins. Install once from `extension/`.
 - **One process, three doorways.** REST, WebSocket, MCP — same registry, same
   agent. No second deployment.
 
 ## Install
 
+Pick whichever path fits.
+
+### 1. pip (recommended for developers)
+
 ```bash
 pip install 'automate-hub[full]'
-# or, for a minimal install (no MCP/browser/desktop):
-pip install automate-hub
+automate serve
 ```
-
-Optional extras:
 
 | extra      | what it adds                                                              |
 | ---------- | ------------------------------------------------------------------------- |
-| `mcp`      | stdio MCP server entry (`automate mcp`) for Claude Code / Cursor / Cline. |
+| `mcp`      | stdio MCP entry (`automate mcp`) for Claude Code / Cursor / Cline.        |
 | `browser`  | Playwright. Run `python -m playwright install chromium` after install.    |
 | `desktop`  | pyautogui. Skip on headless servers.                                      |
 | `full`     | All of the above.                                                         |
 
+### 2. Standalone binary (no Python required)
+
+Download from the [Releases page](https://github.com/yuruotong1/autoMate/releases) —
+Windows / macOS (Apple Silicon) / Linux. Unzip and run `./automate/automate serve`.
+
+### 3. Docker
+
+```bash
+docker run --rm -p 8765:8765 -v automate-data:/data \
+  ghcr.io/yuruotong1/automate:latest
+```
+
+Or build it yourself: `docker build -t automate-hub . && docker run -p 8765:8765 automate-hub`.
+
+### 4. Browser extension (one extra step for `bx.*` tools)
+
+After installing autoMate by any of the above, open `chrome://extensions`,
+toggle **Developer mode**, click **Load unpacked**, pick the `extension/`
+folder. The toolbar badge flips to green **ON** when paired. See
+[`extension/README.md`](./extension/README.md).
+
 ## Run
 
 ```bash
-automate serve
-```
-
-That's it. The browser opens to `http://127.0.0.1:8765`. The first thing it
-asks is which LLM provider to use — paste a key, hit "Use this", you're done.
-
-```bash
-automate doctor    # show paths, configured providers, integrations
-automate mcp       # start a stdio MCP server (for upstream LLM clients)
+automate serve            # web UI + REST + WebSocket on http://127.0.0.1:8765
+automate mcp              # expose tools as a stdio MCP server
+automate doctor           # show paths, configured providers, integrations
 ```
 
 Data lives under `~/.automate/`. Credentials are encrypted with a key at
-`~/.automate/secret.key` (chmod 600). Override with `AUTOMATE_HOME=/path`.
+`~/.automate/secret.key` (chmod 600). Override the location with
+`AUTOMATE_HOME=/path`.
 
 ## Use it
 
@@ -119,7 +137,7 @@ Add this to your client's MCP config:
 ```
 
 Now the upstream LLM sees one top-level `automate(prompt)` tool plus every
-individual tool — `shell.exec`, `browser.open`, `notion_search`, etc. Use the
+individual tool — `shell.exec`, `bx.click`, `notion_search`, etc. Use the
 prompt-shaped tool when you want autoMate to figure out the steps. Use the
 specific tools when the upstream model already has a plan. **They plan, we
 execute** — that's the whole division of labour.
@@ -156,10 +174,38 @@ Shopify · Telegram · Discord · Microsoft Teams · Zoom · Twitter/X · SendGr
 Mailchimp · Twilio · Sentry · 飞书 · 钉钉 · 企业微信 · 微信公众号 · 微博 ·
 语雀 · 高德地图.
 
-**Local executors** — `shell.exec`, `shell.cwd`, `script.run`, `script.list`,
-`script.read`, `desktop.screenshot`, `desktop.click`, `desktop.type`,
-`desktop.press`, `desktop.size`, `browser.open`, `browser.click`,
-`browser.type`, `browser.extract`, `browser.screenshot`, `browser.close`.
+**Local executors** — `shell.exec` · `shell.cwd` · `script.run` · `script.list` ·
+`script.read` · `desktop.screenshot` · `desktop.click` · `desktop.type` ·
+`desktop.press` · `desktop.size`.
+
+**Headless browser** (Playwright) — `browser.open` · `browser.click` ·
+`browser.type` · `browser.extract` · `browser.screenshot` · `browser.close`.
+
+**Your real browser** (Chrome extension) — `bx.tabs` · `bx.open` · `bx.activate` ·
+`bx.close` · `bx.navigate` · `bx.screenshot` · `bx.click` · `bx.type` ·
+`bx.extract` · `bx.scroll` · `bx.eval`.
+
+## Project layout
+
+```
+autoMate/
+├─ automate/              # the package
+│  ├─ server/             # FastAPI app, routers, MCP bridge
+│  │  └─ api/             # REST + WebSocket endpoints
+│  ├─ agent/              # NL → tool-call loop
+│  ├─ providers/          # LLM provider catalog + clients
+│  ├─ tools/              # shell · script · browser · desktop · bx · adapter
+│  ├─ integrations/       # 31 SaaS connectors (github, notion, slack, …)
+│  ├─ oauth/              # auth-code flow + provider catalog
+│  ├─ store/              # SQLite + Fernet vault
+│  ├─ frontend/           # static SPA (Tailwind + Alpine, no build step)
+│  ├─ extension_bus.py    # sync ↔ async bridge for the Chrome extension
+│  ├─ settings.py · cli.py · version.py
+├─ extension/             # Chrome MV3 extension (load unpacked)
+├─ packaging/             # PyInstaller spec for binary builds
+├─ Dockerfile
+└─ pyproject.toml
+```
 
 ## Adding a new tool
 
@@ -189,8 +235,9 @@ ones), nothing else is needed. The UI picks it up on next reload.
 
 v1.0 — server, agent loop, MCP bridge, all integrations adapted, OAuth
 implemented for GitHub / Notion / Slack / Linear / 飞书 / 钉钉, click-through
-flow for the rest. Browser execution via Playwright. Tested against Python
-3.10–3.12.
+flow for the rest. Headless browser via Playwright; live browser via Chrome
+extension. Multi-OS distribution: pip, standalone binaries, Docker. Tested
+against Python 3.10–3.12.
 
 ## License
 

@@ -78,6 +78,7 @@ def build_default_registry() -> ToolRegistry:
     from . import shell as _shell
     from . import script as _script
     from . import browser as _browser
+    from . import browser_ext as _bx
     from . import desktop as _desktop
     from . import integrations_adapter as _ia
 
@@ -85,6 +86,7 @@ def build_default_registry() -> ToolRegistry:
     _shell.register(reg)
     _script.register(reg)
     _browser.register(reg)
+    _bx.register(reg)
     _desktop.register(reg)
     _ia.register(reg)
     return reg

@@ -28,6 +28,10 @@
         </template>
       </nav>
       <div class="text-xs text-zinc-500 flex items-center gap-3">
+        <span class="flex items-center gap-1" :title="status?.extension_connected ? 'Browser extension connected' : 'Install the autoMate Bridge extension to drive your real browser'">
+          <span class="w-1.5 h-1.5 rounded-full" :class="status?.extension_connected ? 'bg-emerald-500' : 'bg-zinc-300'"></span>
+          <span class="text-[11px]">extension</span>
+        </span>
         <span x-show="status?.active_provider">
           <span class="text-zinc-400">model:</span>
           <span class="font-medium text-zinc-700" x-text="`${status.active_provider} / ${status.active_model || 'default'}`"></span>

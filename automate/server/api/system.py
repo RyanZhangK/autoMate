@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
+from ...extension_bus import bus
 from ...version import __version__
 from ._deps import state
 
@@ -24,4 +25,5 @@ def status(s=Depends(state)):
         "integrations": len(s.db.list_connections()),
         "integrations_connected": sum(1 for c in s.db.list_connections() if c["status"] == "connected"),
         "tools": len(s.registry.all()),
+        "extension_connected": bus.connected,
     }

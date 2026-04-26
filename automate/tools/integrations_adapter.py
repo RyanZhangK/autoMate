@@ -150,7 +150,7 @@ def register(reg: ToolRegistry) -> None:
     """Mount all configured integrations onto the new registry."""
     loaded = _hydrate_env_from_connections()
     try:
-        from integrations import ALL_INTEGRATIONS  # legacy package
+        from ..integrations import ALL_INTEGRATIONS
     except ImportError:
         return
     for integration in ALL_INTEGRATIONS:

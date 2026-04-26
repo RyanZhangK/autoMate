@@ -8,7 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from ..version import __version__
-from .api import agent, execute, integrations, models, oauth, sessions, system, tools as tools_api
+from .api import (
+    agent, execute, extension, integrations, models, oauth, sessions, system,
+    tools as tools_api,
+)
 from .state import AppState, build_state
 
 
@@ -33,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(agent.router,         prefix="/api")
     app.include_router(execute.router,       prefix="/api")
     app.include_router(sessions.router,      prefix="/api")
+    app.include_router(extension.router,     prefix="/api")
     app.include_router(oauth.router)  # /oauth/<id>/callback (no /api prefix)
 
     # Mount the static SPA last so /api/* still wins.

@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>autoMate Bridge</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; width: 280px; padding: 14px; color: #111; margin: 0; }
+    h1 { font-size: 14px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #d4d4d8; }
+    .dot.on { background: #10b981; }
+    label { display: block; font-size: 11px; color: #666; margin: 8px 0 3px; }
+    input { width: 100%; padding: 5px 7px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    button { width: 100%; padding: 6px; border: 0; border-radius: 4px; background: #18181b; color: white; cursor: pointer; font-size: 12px; margin-top: 10px; }
+    .small { font-size: 10px; color: #888; margin-top: 8px; line-height: 1.5; }
+    .small a { color: #2563eb; }
+    .row { display: flex; gap: 6px; align-items: center; font-size: 11px; color: #555; }
+  </style>
+</head>
+<body>
+  <h1><span id="dot" class="dot"></span> autoMate Bridge</h1>
+  <div class="row" id="row-status">Connecting…</div>
+
+  <label>autoMate server</label>
+  <input id="url" placeholder="ws://127.0.0.1:8765/api/extension/ws" />
+  <button id="save">Save & reconnect</button>
+
+  <p class="small">
+    This extension lets the autoMate hub on your machine drive this browser —
+    using your real session and cookies. Make sure <code>automate serve</code>
+    is running, then leave this popup alone. The badge shows <b>ON</b> when
+    paired.
+  </p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
