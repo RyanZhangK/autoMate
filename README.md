@@ -74,6 +74,22 @@ what you're using. Four modes:
 
 Or skip the snippets and just chat with autoMate directly in its own UI.
 
+### Use it on your phone
+
+The UI is a Progressive Web App. Run the hub on your laptop with
+`automate serve --host 0.0.0.0`, then open `http://<laptop-ip>:8765` in
+mobile Chrome / Safari → **Add to Home Screen**. Phone is the controller;
+your laptop runs the actual tools.
+
+For internet-wide access without opening a port, use the relay client:
+
+```bash
+automate relay wss://relay.example.com/tunnel --token YOUR_TOKEN
+```
+
+Protocol + self-host guide: [docs/relay.md](./docs/relay.md). A hosted relay
+is on the roadmap.
+
 - **Bring your own brain.** 25+ LLM providers in the catalog (OpenAI, Anthropic,
   Gemini, Kimi, Qwen, DeepSeek, Doubao, GLM, Yi, MiniMax, Hunyuan, Baichuan,
   StepFun, Mistral, Grok, OpenRouter, Groq, Together, Fireworks, Ollama,

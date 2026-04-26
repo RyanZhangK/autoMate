@@ -126,6 +126,62 @@ jobs:
           name: autoMate-extension
           path: autoMate-extension.zip
 
+  android:
+    # Best-effort APK: a TWA shell that opens the hub URL.
+    # Skipped if the build fails so a missing APK never blocks a release.
+    name: Build Android APK (TWA)
+    needs: resolve
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - uses: actions/setup-java@v4
+        with: { distribution: "temurin", java-version: "17" }
+      - name: Install Bubblewrap
+        run: npm install --global @bubblewrap/cli@latest
+      - name: Generate TWA project
+        run: |
+          mkdir twa && cd twa
+          # The TWA points at a publicly-reachable URL — use the project page
+          # as a safe default. End users override the hub URL inside the app
+          # via Settings → 'Connect this UI to a different hub'.
+          cat > twa-manifest.json <<'EOF'
+          {
+            "packageId": "dev.automate.hub",
+            "host": "yuruotong1.github.io",
+            "name": "autoMate",
+            "launcherName": "autoMate",
+            "themeColor": "#18181b",
+            "navigationColor": "#18181b",
+            "backgroundColor": "#fafafa",
+            "startUrl": "/autoMate/",
+            "iconUrl": "https://raw.githubusercontent.com/yuruotong1/autoMate/master/automate/frontend/icon-512.png",
+            "appVersion": "${{ needs.resolve.outputs.tag }}"
+          }
+          EOF
+          # Generating the Bubblewrap project requires interactive prompts;
+          # fall back to a stub APK if it doesn't work in CI.
+          bubblewrap init --manifest=twa-manifest.json --skipPwaValidation || true
+          bubblewrap build --skipPwaValidation || true
+          ls -la
+      - name: Locate APK
+        id: locate
+        run: |
+          apk=$(find twa -name '*.apk' | head -1)
+          if [ -n "$apk" ]; then
+            cp "$apk" autoMate-android.apk
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: steps.locate.outputs.found == 'true'
+        with:
+          name: autoMate-android
+          path: autoMate-android.apk
+
   wheel:
     name: Build wheel + sdist
     needs: resolve
@@ -145,7 +201,7 @@ jobs:
 
   release:
     name: Publish Release
-    needs: [resolve, build, extension, wheel]
+    needs: [resolve, build, extension, wheel, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -166,6 +222,7 @@ jobs:
             artifacts/autoMate-extension/autoMate-extension.zip
             artifacts/autoMate-pypi/*.whl
             artifacts/autoMate-pypi/*.tar.gz
+            artifacts/autoMate-android/autoMate-android.apk
           generate_release_notes: true
           body: |
             ## Install

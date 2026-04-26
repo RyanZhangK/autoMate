@@ -57,6 +57,11 @@ def _mcp(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _relay(args: argparse.Namespace) -> int:
+    from .relay import run
+    return run(args.relay_url, token=args.token, local_url=args.local)
+
+
 def _doctor(_args: argparse.Namespace) -> int:
     from .server.state import build_state
     state = build_state()
@@ -97,6 +102,12 @@ def main(argv: list[str] | None = None) -> int:
 
     p_doctor = sub.add_parser("doctor", help="print runtime status and config")
     p_doctor.set_defaults(func=_doctor)
+
+    p_relay = sub.add_parser("relay", help="open a reverse tunnel to a remote relay (advanced)")
+    p_relay.add_argument("relay_url", help="ws(s):// URL of the relay tunnel endpoint")
+    p_relay.add_argument("--token", default=None, help="bearer token for the relay (or AUTOMATE_RELAY_TOKEN env var)")
+    p_relay.add_argument("--local", default=None, help="local hub URL (default: http://127.0.0.1:8765)")
+    p_relay.set_defaults(func=_relay)
 
     if argv is None:
         argv = sys.argv[1:]

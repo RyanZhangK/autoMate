@@ -4,9 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>autoMate · scheduling hub</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <meta name="theme-color" content="#18181b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="stylesheet" href="/styles.css" />
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </head>
 <body class="bg-zinc-50 text-zinc-900 antialiased min-h-screen" x-data="app" x-init="init()">
 
@@ -810,6 +823,68 @@
             </div>
           </template>
         </div>
+      </div>
+
+      <!-- Use on phone -->
+      <div class="bg-white border rounded-xl p-5">
+        <h2 class="text-lg font-semibold mb-2">Use it on your phone</h2>
+        <p class="text-sm text-zinc-600 leading-relaxed">
+          autoMate's UI is a Progressive Web App — it installs on Android and
+          iOS without an app store. The phone is the <em>controller</em>; the
+          actual hub keeps running on your computer (a phone can't run shell
+          commands or drive a real browser).
+        </p>
+        <ol class="list-decimal list-inside mt-3 text-sm text-zinc-700 space-y-1.5">
+          <li>On your computer, restart the hub on your LAN: stop the running process, then run <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">automate serve --host 0.0.0.0</code> (or set <code class="bg-zinc-100 px-1 py-0.5 rounded text-xs">AUTOMATE_HOST=0.0.0.0</code>).</li>
+          <li>Find the computer's LAN IP (macOS: System Settings → Network · Windows: <code class="text-xs bg-zinc-100 px-1 rounded">ipconfig</code> · Linux: <code class="text-xs bg-zinc-100 px-1 rounded">ip addr</code>).</li>
+          <li>On your phone (same WiFi), open Chrome/Safari at <code class="text-xs bg-zinc-100 px-1 rounded">http://&lt;your-ip&gt;:8765</code>.</li>
+          <li>Phone menu → <strong>Add to Home Screen</strong>. Boom — autoMate is now an app.</li>
+        </ol>
+        <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2 mt-3">
+          ⚠ <code>--host 0.0.0.0</code> exposes the hub to anyone on your LAN.
+          Don't do this on coffee-shop WiFi. For internet-wide access, use the
+          relay (see below) instead of opening a port.
+        </p>
+      </div>
+
+      <!-- Remote hub URL setting -->
+      <div class="bg-white border rounded-xl p-5">
+        <h2 class="text-lg font-semibold mb-2">Connect this UI to a different hub</h2>
+        <p class="text-sm text-zinc-600 leading-relaxed">
+          By default the UI talks to whatever server it was loaded from. To
+          point it at a hub somewhere else (your laptop's LAN IP, an ngrok
+          tunnel, or a relay), set the URL here. Stored in your browser only.
+        </p>
+        <p class="text-xs text-zinc-500 mt-2">
+          Currently using: <code class="bg-zinc-100 px-1 rounded text-xs" x-text="currentHubBase"></code>
+        </p>
+        <div class="flex gap-2 mt-3">
+          <input x-model="hubBaseInput" placeholder="http://192.168.1.20:8765 (leave blank to use this server)"
+                 class="flex-1 border rounded-md px-2 py-1.5 font-mono text-xs" />
+          <button @click="saveHubBase()" class="bg-zinc-900 text-white text-xs px-3 py-1.5 rounded-md flex-shrink-0">
+            Save &amp; reload
+          </button>
+        </div>
+      </div>
+
+      <!-- Relay (coming soon) -->
+      <div class="bg-white border rounded-xl p-5">
+        <h2 class="text-lg font-semibold mb-2">Use it from anywhere (relay)</h2>
+        <p class="text-sm text-zinc-600 leading-relaxed">
+          Don't want to expose your laptop on the internet, but still want your
+          phone (or a remote AI) to reach your hub? autoMate ships with a
+          <strong>relay client</strong>: the hub dials out to a relay server,
+          opening a reverse tunnel. The phone hits the relay's HTTPS URL — the
+          relay forwards over the tunnel to your hub.
+        </p>
+        <pre class="bg-zinc-900 text-zinc-100 text-xs p-3 rounded-md mt-3 overflow-x-auto"><code>automate relay wss://relay.example.com/tunnel --token YOUR_TOKEN</code></pre>
+        <p class="text-xs text-zinc-500 mt-2">
+          The protocol is implemented in <code class="bg-zinc-100 px-1 rounded text-xs">automate.relay</code>;
+          a public hosted relay is not yet open. See
+          <a href="https://github.com/yuruotong1/autoMate/blob/master/docs/relay.md"
+             target="_blank" class="text-blue-600 underline">docs/relay.md</a>
+          for the protocol if you want to self-host.
+        </p>
       </div>
 
       <!-- Privacy -->

@@ -52,6 +52,17 @@ document.addEventListener("alpine:init", () => {
     runs: [],
     connectInfo: null,
     copiedKey: null,
+    hubBaseInput: "",
+
+    saveHubBase() {
+      const v = (this.hubBaseInput || "").trim().replace(/\/$/, "");
+      if (v) localStorage.setItem("automate-hub-base", v);
+      else localStorage.removeItem("automate-hub-base");
+      location.reload();
+    },
+    get currentHubBase() {
+      return localStorage.getItem("automate-hub-base") || "(this server)";
+    },
 
     async loadConnectInfo() {
       try { this.connectInfo = await api("/api/connect"); }
@@ -366,8 +377,7 @@ document.addEventListener("alpine:init", () => {
 
     // ---- chat ----
     connectWS() {
-      const proto = location.protocol === "https:" ? "wss" : "ws";
-      this.ws = new WebSocket(`${proto}://${location.host}/api/sessions/ws`);
+      this.ws = new WebSocket(wsUrlFor("/api/sessions/ws"));
       this.ws.onmessage = (e) => {
         const ev = JSON.parse(e.data);
         if (ev.kind === "done") { this.busy = false; this.loadRuns(); return; }
@@ -404,10 +414,23 @@ document.addEventListener("alpine:init", () => {
   }));
 });
 
+function hubBase() {
+  return (localStorage.getItem("automate-hub-base") || "").replace(/\/$/, "");
+}
+
+function wsUrlFor(path) {
+  const base = hubBase();
+  if (base) {
+    const u = new URL(base);
+    return `${u.protocol === "https:" ? "wss" : "ws"}://${u.host}${path}`;
+  }
+  return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${path}`;
+}
+
 async function api(path, method = "GET", body) {
   const opts = { method, headers: { "Content-Type": "application/json" } };
   if (body !== undefined) opts.body = JSON.stringify(body);
-  const r = await fetch(path, opts);
+  const r = await fetch(hubBase() + path, opts);
   if (!r.ok) {
     let msg = await r.text();
     try { msg = JSON.parse(msg).detail || msg; } catch {}

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "automate-hub"
-version = "4.0.4"
+version = "4.0.5"
 description = "A scheduling hub that gives any LLM hands. Browser UI + MCP/HTTP entry points + 30+ SaaS integrations + shell/browser/desktop execution."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -37,11 +37,14 @@ mcp = ["mcp[cli]>=1.0.0"]
 browser = ["playwright>=1.40"]
 # Desktop execution (screenshot / mouse / keyboard). Skip on headless servers.
 desktop = ["pyautogui>=0.9.54", "pillow>=10.0"]
+# Reverse-tunnel client (`automate relay`) for using the hub from anywhere.
+relay = ["websockets>=12.0", "httpx>=0.27"]
 # Everything
 full = [
     "automate-hub[mcp]",
     "automate-hub[browser]",
     "automate-hub[desktop]",
+    "automate-hub[relay]",
 ]
 
 [project.scripts]
